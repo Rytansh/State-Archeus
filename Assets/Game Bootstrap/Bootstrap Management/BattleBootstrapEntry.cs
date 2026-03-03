@@ -17,7 +17,7 @@ public sealed class BattleBootstrapEntry
 
     public void Initialise()
     {
-        Logging.System("=== Battle Bootstrap Started ===");
+        Logging.System("=== Game Bootstrap Started ===");
 
         // Register all processes (in any order)
         sharedOrchestrator.Register(new LoggingProcess());

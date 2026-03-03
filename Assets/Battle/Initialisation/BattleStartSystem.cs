@@ -4,6 +4,7 @@ using DBUS.Battle.Components.Determinism;
 using DBUS.Battle.Components.Turns;
 using DBUS.Battle.Components.Setup;
 using DBUS.Battle.Components.Ownership;
+using DBUS.Battle.Components.Events;
 public partial struct BattleStartSystem : ISystem
 {
     public void OnUpdate(ref SystemState state)
@@ -18,6 +19,19 @@ public partial struct BattleStartSystem : ISystem
         {
             if (battleState.ValueRO.Phase != BattlePhase.BattleReady)
                 continue;
+            
+            var buffer = state.EntityManager.GetBuffer<BattleEventBuffer>(battle);
+            buffer.Add(new BattleEventBuffer
+            {
+                Value = new BattleEvent
+                {
+                    Type = BattleEventType.TurnStarted,
+                    Source = battle,
+                    Target = battle
+                }
+            });
+
+            var triggerBuffer = SystemAPI.GetBuffer<RegisteredTrigger>(battle);
 
             ecb.AddComponent<BattleTurnStartTag>(battle);
 
