@@ -5,6 +5,7 @@ using DBUS.Battle.Components.Determinism;
 using DBUS.Battle.Components.Requests;
 using DBUS.Battle.Components.Ownership;
 using DBUS.Battle.Components.Combat;
+using DBUS.Battle.Components.Events;
 
 [UpdateInGroup(typeof(PlanningStageGroup))]
 public partial struct PlanningStageSystem : ISystem
@@ -31,22 +32,23 @@ public partial struct PlanningStageSystem : ISystem
         {
             var player = request.ValueRO.Player;
 
-            if (!SystemAPI.HasComponent<PlayerHand>(player) || !SystemAPI.HasComponent<RemainingActionPoints>(player) || !IsPlanningPhase(ref state, player))
+            if (!SystemAPI.HasComponent<PlayerHand>(player) || !SystemAPI.HasComponent<RemainingActionPoints>(player) || !TryPlanningBattle(ref state, player, out var battle))
             {
                 ecb.DestroyEntity(requestEntity);
                 continue;
             }
 
-            var hand = SystemAPI.GetComponentRW<PlayerHand>(player);
-            var ap   = SystemAPI.GetComponentRW<RemainingActionPoints>(player);
+            var buffer = SystemAPI.GetBuffer<BattleEventBuffer>(battle);
 
-            if (ap.ValueRO.Value > 0 && hand.ValueRO.Current > 0)
+            buffer.Add(new BattleEventBuffer
             {
-                hand.ValueRW.Current--;
-                ap.ValueRW.Value--;
-                Logging.System("[Battle] Placed a card from hand.");
-            }
-            else {Logging.Warning("[Battle] No action points or no cards in hand available.");}
+                Value = new BattleEvent
+                {
+                    Type = BattleEventType.CardPlaced,
+                    Source = player,
+                    Target = player
+                }
+            });
 
             ecb.DestroyEntity(requestEntity);
         }
@@ -60,20 +62,23 @@ public partial struct PlanningStageSystem : ISystem
         {
             var player = request.ValueRO.Player;
 
-            if (!SystemAPI.HasComponent<RemainingActionPoints>(player) || !IsPlanningPhase(ref state, player))
+            if (!SystemAPI.HasComponent<RemainingActionPoints>(player) || !TryPlanningBattle(ref state, player, out var battle))
             {
                 ecb.DestroyEntity(requestEntity);
                 continue;
             }
 
-            var ap = SystemAPI.GetComponentRW<RemainingActionPoints>(player);
+            var buffer = SystemAPI.GetBuffer<BattleEventBuffer>(battle);
 
-            if (ap.ValueRO.Value > 0) 
+            buffer.Add(new BattleEventBuffer
             {
-                ap.ValueRW.Value--;
-                Logging.System("[Battle] Expended 1 action point.");
-            }
-            else {Logging.Warning("[Battle] No action points remaining for the turn.");}
+                Value = new BattleEvent
+                {
+                    Type = BattleEventType.ActionDeclared,
+                    Source = player,
+                    Target = player
+                }
+            });
 
             ecb.DestroyEntity(requestEntity);
         }
@@ -86,15 +91,7 @@ public partial struct PlanningStageSystem : ISystem
         {
             var player = request.ValueRO.Player;
 
-            if (!SystemAPI.HasComponent<OwnedBattle>(player))
-            {
-                ecb.DestroyEntity(requestEntity);
-                continue;
-            }
-            var ownedBattle = SystemAPI.GetComponent<OwnedBattle>(player);
-            var battle = ownedBattle.Battle;
-
-            if (SystemAPI.HasComponent<BattlePlanningCompleteTag>(battle)|| !IsPlanningPhase(ref state, player))
+            if (!TryPlanningBattle(ref state, player, out var battle) || SystemAPI.HasComponent<BattlePlanningCompleteTag>(battle))
             {
                 ecb.DestroyEntity(requestEntity);
                 continue;
@@ -105,11 +102,21 @@ public partial struct PlanningStageSystem : ISystem
         }
     }
 
-    private bool IsPlanningPhase(ref SystemState state, Entity player)
+    private bool TryPlanningBattle(ref SystemState state, Entity player, out Entity battle)
     {
-        if (!SystemAPI.HasComponent<OwnedBattle>(player)) return false;
+        battle = Entity.Null;
+
+        if (!SystemAPI.HasComponent<OwnedBattle>(player))
+            return false;
+
         var ownedBattle = SystemAPI.GetComponent<OwnedBattle>(player);
-        var battleState = SystemAPI.GetComponent<BattleState>(ownedBattle.Battle);
+        battle = ownedBattle.Battle;
+
+        if (!SystemAPI.HasComponent<BattleState>(battle))
+            return false;
+
+        var battleState = SystemAPI.GetComponent<BattleState>(battle);
+
         return battleState.Phase == BattlePhase.Planning;
     }
 

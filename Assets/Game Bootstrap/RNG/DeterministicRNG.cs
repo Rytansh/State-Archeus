@@ -14,10 +14,17 @@ public struct DeterministicRNG
         if (_s0 == 0 && _s1 == 0) _s1 = 0x9E3779B97F4A7C15UL;
     }
 
+    public DeterministicRNG(ulong stateA, ulong stateB)
+    {
+        _s0 = stateA;
+        _s1 = stateB;
+        if (_s0 == 0 && _s1 == 0) _s1 = 0x9E3779B97F4A7C15UL;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong SplitMix64(ref ulong seed)
     {
-        ulong z = (seed += 0x9E3779B97F4A7C15UL);
+        ulong z = seed += 0x9E3779B97F4A7C15UL;
         z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
         z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
         return z ^ (z >> 31);

@@ -5,6 +5,7 @@ using DBUS.Battle.Components.Turns;
 using DBUS.Battle.Components.Setup;
 using DBUS.Battle.Components.Ownership;
 using DBUS.Battle.Components.Combat;
+using DBUS.Battle.Components.Events;
 
 [UpdateInGroup(typeof(BattleInitialisationGroup))]
 public partial struct BattleInitialisationSystem : ISystem
@@ -36,6 +37,26 @@ public partial struct BattleInitialisationSystem : ISystem
                 ecb.AddComponent(player, new RemainingActionPoints { Value = 4 });
                 ecb.AddComponent(player, new PlayerHand { Current = 0 });
                 ecb.AddComponent(player, new MaxHandSize { Value = 4 });
+
+                var triggerBuffer = state.EntityManager.GetBuffer<RegisteredTrigger>(battle);
+
+                triggerBuffer.Add(new RegisteredTrigger
+                {
+                    EventType = BattleEventType.ActionDeclared,
+                    Priority = 10,
+                    Owner = player,
+                    BehaviourID = 1,
+                    RegistrationIndex = triggerBuffer.Length
+                });
+
+                triggerBuffer.Add(new RegisteredTrigger
+                {
+                    EventType = BattleEventType.CardPlaced,
+                    Priority = 10,
+                    Owner = player,
+                    BehaviourID = 2,
+                    RegistrationIndex = triggerBuffer.Length
+                });
             }
 
             ecb.AddComponent<BattleInitialisationCompleteTag>(battle);
