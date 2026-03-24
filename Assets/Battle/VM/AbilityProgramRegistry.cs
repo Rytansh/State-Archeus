@@ -6,17 +6,17 @@ namespace DBUS.Battle.VM.Systems
 {
     public static class AbilityProgramRegistry
     {
-        private static Dictionary<int, BlobAssetReference<AbilityProgram>> programs
-            = new();
+        private static Dictionary<(int behaviourIndex, int triggerIndex), BlobAssetReference<AbilityProgram>> programs = new();
 
-        public static void Register(int id, BlobAssetReference<AbilityProgram> program)
+        public static void Register(int behaviourIndex, int triggerIndex, BlobAssetReference<AbilityProgram> program)
         {
-            programs[id] = program;
+            programs[(behaviourIndex, triggerIndex)] = program;
+            Logging.System($"Registered program for ({behaviourIndex}, {triggerIndex})");
         }
 
-        public static BlobAssetReference<AbilityProgram> Get(int id)
+        public static BlobAssetReference<AbilityProgram> Get(int behaviourIndex, int triggerIndex)
         {
-            return programs[id];
+            return programs[(behaviourIndex, triggerIndex)];
         }
     }
 }

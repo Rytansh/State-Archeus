@@ -1,7 +1,8 @@
 using DBUS.Gameplay.Stats;
+using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "CharacterDefinition", menuName = "Card Definition/Character")]
+[CreateAssetMenu(fileName = "CharacterDefinition", menuName = "Definition/Character")]
 public class CharacterDefinition : ScriptableObject
 {
     public string ID;   
@@ -9,18 +10,21 @@ public class CharacterDefinition : ScriptableObject
     public CharacterRarity Rarity;           
     public BattleType BattleType; 
     public CharacterType CharacterType;      
-    public Speciality Speciality;               
-    public CharacterBaseStats CharacterBaseStats;   
+    public Speciality Speciality;   
+
+    public CharacterBaseStats CharacterBaseStats; 
+
     public string NormalAttackID;
     public string SuperchargedAttackID;  
     public string FinalTrumpSkillID;  
+    public List<string> BehaviourIDs;
 }
 [System.Serializable]
 public struct CharacterBaseStats
 {
-    public float HP;
-    public float ATK;
-    public float DEF;
+    public float MaxHealth;
+    public float Attack;
+    public float Defense;
     public float CritDMG;
     public float CritRATE;
     public float Reactivity;

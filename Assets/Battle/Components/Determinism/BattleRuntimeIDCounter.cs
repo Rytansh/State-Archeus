@@ -2,8 +2,8 @@ using Unity.Entities;
 
 namespace DBUS.Battle.Components.Determinism
 {
-    public struct SpawnIndex: IComponentData
+    public struct BattleRuntimeIDCounter: IComponentData
     {        
-        public ulong Value;
+        public uint NextID;
     }
 }

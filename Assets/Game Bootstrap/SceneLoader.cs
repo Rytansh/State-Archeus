@@ -5,6 +5,7 @@ public class SceneLoader : MonoBehaviour
 {
     public void LoadBattleScene()
     {
-        SceneManager.LoadScene("BattleScene");
+        SceneManager.UnloadSceneAsync("MenuScene");
+        SceneManager.LoadScene("BattleScene", LoadSceneMode.Additive);
     }
 }

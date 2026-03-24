@@ -26,7 +26,7 @@ public partial struct GameStartGateSystem : ISystem
         if (!registryExists || !bootstrapComplete)
             return;
 
-        SceneManager.LoadSceneAsync("MenuScene");
+        SceneManager.LoadSceneAsync("MenuScene", LoadSceneMode.Additive);
 
         started = true;
     }

@@ -4,4 +4,5 @@ public class ContentDefinitionAuthoring : MonoBehaviour
 {
     public CharacterDefinition[] CharacterDefinitions;
     public SkillDefinition[] SkillDefinitions;
+    public BehaviourDefinition[] BehaviourDefinitions;
 }

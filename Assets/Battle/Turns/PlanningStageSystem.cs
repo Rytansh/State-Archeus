@@ -15,7 +15,7 @@ public partial struct PlanningStageSystem : ISystem
         EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
         
         ProcessPlaceCardRequest(ref state, ecb);
-        ProcessPlayActionRequest(ref state, ecb);
+        //ProcessPlayActionRequest(ref state, ecb);
         ProcessEndPlanningRequest(ref state, ecb);
         //planning phase should not perform actions, only calculate action points, etc, and check if actions can be performed
         //all actions should be added to a queue later
@@ -37,7 +37,24 @@ public partial struct PlanningStageSystem : ISystem
                 ecb.DestroyEntity(requestEntity);
                 continue;
             }
-            Logging.System("Card placed event fired.");
+
+            var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
+
+            eventBuffer.Add(new BattleEvent
+            {
+                Type = BattleEventType.TestEvent,
+                Source = player,          // or any entity you want
+                Target = player,          // self-target is fine for testing
+                Payload = new EventPayload
+                {
+                    Damage = new DamagePayload
+                    {
+                        AttackMultiplier = 1.0f
+                    }
+                }
+            });
+
+            Logging.System("Damage dealt event fired.");
             ecb.DestroyEntity(requestEntity);
         }
     }

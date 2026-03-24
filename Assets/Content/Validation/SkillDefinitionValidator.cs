@@ -12,8 +12,8 @@ public static class SkillDefinitionValidator
 
         ValidationTools.RequirePositive(validator, definition.Duration, "Duration");
         
-        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.HP, "Skill HP");
-        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.ATK, "Skill ATK");
-        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.DEF, "Skill DEF");
+        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.Health, "Skill HP");
+        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.Attack, "Skill ATK");
+        ValidationTools.RequireNonNegative(validator, definition.SkillBaseStats.Defense, "Skill DEF");
     }
 }

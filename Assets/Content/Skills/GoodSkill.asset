@@ -17,9 +17,9 @@ MonoBehaviour:
   Rarity: 0
   Speciality: 2
   SkillBaseStats:
-    ATK: 234
-    DEF: 234
-    HP: 32
+    Attack: 432
+    Defense: 23
+    Health: 43
   Duration: 1
   NormalAbilityID: 
   DelayAndImprovementAbilityID: 

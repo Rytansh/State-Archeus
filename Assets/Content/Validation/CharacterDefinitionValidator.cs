@@ -12,9 +12,9 @@ public static class CharacterDefinitionValidator
         ValidationTools.RequireEnumDefined(validator, definition.BattleType, "Battle Type");
         ValidationTools.RequireEnumDefined(validator, definition.Speciality, "Speciality");
         
-        ValidationTools.RequirePositive(validator, definition.CharacterBaseStats.HP, "Character HP");
-        ValidationTools.RequireNonNegative(validator, definition.CharacterBaseStats.ATK, "Character ATK");
-        ValidationTools.RequireNonNegative(validator, definition.CharacterBaseStats.DEF, "Character DEF");
+        ValidationTools.RequirePositive(validator, definition.CharacterBaseStats.MaxHealth, "Character HP");
+        ValidationTools.RequireNonNegative(validator, definition.CharacterBaseStats.Attack, "Character ATK");
+        ValidationTools.RequireNonNegative(validator, definition.CharacterBaseStats.Defense, "Character DEF");
         ValidationTools.RequireInRange(validator, definition.CharacterBaseStats.CritRATE, 0, 100, "Crit Rate");
         if(definition.CharacterBaseStats.CritRATE < 0) { validator.Warning("Crit Rate out of acceptable bounds.");}
         ValidationTools.RequireNonNegative(validator, definition.CharacterBaseStats.CritDMG, "Crit DMG");

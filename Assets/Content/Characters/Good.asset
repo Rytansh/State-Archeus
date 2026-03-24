@@ -19,13 +19,12 @@ MonoBehaviour:
   CharacterType: 0
   Speciality: 0
   CharacterBaseStats:
-    HP: 3535
-    ATK: 34
-    DEF: 534
+    MaxHealth: 234
+    Attack: 3
+    Defense: 4
     CritDMG: 3
     CritRATE: 45
     Reactivity: 534
-    PowerLEVEL: 0
     SustainPOWER: 0
     MagicalDMGBonus: 0
     PowerfulDMGBonus: 0
@@ -36,3 +35,5 @@ MonoBehaviour:
   NormalAttackID: 
   SuperchargedAttackID: 
   FinalTrumpSkillID: 
+  BehaviourIDs:
+  - TestBehaviour

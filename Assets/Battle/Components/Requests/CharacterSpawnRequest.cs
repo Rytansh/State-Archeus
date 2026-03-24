@@ -6,9 +6,7 @@ namespace DBUS.Battle.Components.Requests
     {
         public Entity Battle;
         public int Slot;
-        public int MaxHealth;
-        public int Attack;
-        public int Defense;
+        public uint CharacterID;
     }
 }
 

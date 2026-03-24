@@ -10,6 +10,10 @@ using DBUS.Battle.VM.Data;
 [UpdateInGroup(typeof(BattleCreationGroup))]
 public partial struct BattleCreationSystem : ISystem 
 { 
+    public void OnCreate(ref SystemState state)
+    {
+        state.RequireForUpdate<StartBattleRequest>();
+    }
     public void OnUpdate(ref SystemState state) 
     { 
         EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
@@ -39,10 +43,10 @@ public partial struct BattleCreationSystem : ISystem
         ecb.AddComponent<BattleTag>(battle);
         ecb.AddComponent(battle, new BattleRNG {StateA = rng.StateA, StateB = rng.StateB});
         ecb.AddComponent(battle, new BattleState { Phase = BattlePhase.Creating });
+        ecb.AddComponent(battle, new BattleRuntimeIDCounter { NextID = 100 });
 
         // EVENT RELATED COMPONENTS / BUFFERS
         ecb.AddComponent(battle, new BattleExecutionCounter { Value = 0 });
-        ecb.AddBuffer<VMTrigger>(battle);
         ecb.AddBuffer<BattleEvent>(battle);
         ecb.AddBuffer<ChainedBattleEvent>(battle);
         ecb.AddBuffer<BehaviourExecutionRequest>(battle);
@@ -55,5 +59,6 @@ public partial struct BattleCreationSystem : ISystem
         ecb.AddComponent(player, new PlayerTag {});
         ecb.AddComponent(player, new OwnedBattle { Battle = battle });
     }
+
 }
 

@@ -25,8 +25,9 @@ public partial struct BattleEventProcessingSystem : ISystem
         characterStatsLookup.Update(ref state);
         characterHPLookup.Update(ref state);
 
-        foreach (var (mainEventQueue, chainedEventQueue, executionRequestQueue, vmTriggerQueue, battle) in SystemAPI.Query<DynamicBuffer<BattleEvent>, DynamicBuffer<ChainedBattleEvent>, DynamicBuffer<BehaviourExecutionRequest>, DynamicBuffer<VMTrigger>>().WithAll<BattleTag>().WithEntityAccess())
+        foreach (var (mainEventQueue, chainedEventQueue, executionRequestQueue, battle) in SystemAPI.Query<DynamicBuffer<BattleEvent>, DynamicBuffer<ChainedBattleEvent>, DynamicBuffer<BehaviourExecutionRequest>>().WithAll<BattleTag>().WithEntityAccess())
         {
+            if (mainEventQueue.Length == 0 && chainedEventQueue.Length == 0 && executionRequestQueue.Length == 0) {continue;}
             BattleSimulationContext ctx = new BattleSimulationContext
             {
                 Battle = battle,
@@ -36,7 +37,7 @@ public partial struct BattleEventProcessingSystem : ISystem
             };
             int safetyCounter = 0;
 
-            while (chainedEventQueue.Length > 0 || mainEventQueue.Length > 0 || executionRequestQueue.Length > 0)
+            while (true)
             {
                 if (++safetyCounter > MAX_EXECUTIONS)
                 {
@@ -47,55 +48,76 @@ public partial struct BattleEventProcessingSystem : ISystem
                     break;
                 }
 
-                while (chainedEventQueue.Length > 0)
+                // 1. Chained events (highest priority)
+                if (chainedEventQueue.Length > 0)
                 {
                     var evt = chainedEventQueue[0].Event;
                     chainedEventQueue.RemoveAt(0);
 
-                    Dispatch(ref state, ctx, evt, vmTriggerQueue, executionRequestQueue);
+                    Dispatch(ref state, ctx, evt, executionRequestQueue);
+                    continue;
                 }
 
-                while (mainEventQueue.Length > 0)
-                {
-                    var evt = mainEventQueue[0];
-                    mainEventQueue.RemoveAt(0);
-
-                    Dispatch(ref state, ctx, evt, vmTriggerQueue, executionRequestQueue);
-                }
-
-                while (executionRequestQueue.Length > 0)
+                // 2. Behaviour executions
+                if (executionRequestQueue.Length > 0)
                 {
                     var request = executionRequestQueue[0];
                     executionRequestQueue.RemoveAt(0);
 
                     ExecuteBehaviour(ref state, battle, chainedEventQueue, request);
+                    continue;
                 }
+
+                // 3. Main events (lowest priority)
+                if (mainEventQueue.Length > 0)
+                {
+                    var evt = mainEventQueue[0];
+                    mainEventQueue.RemoveAt(0);
+
+                    Dispatch(ref state, ctx, evt, executionRequestQueue);
+                    continue;
+                }
+
+                // Nothing left → we're done
+                break;
             }
         }
     }
 
 
-    private void Dispatch(ref SystemState state, BattleSimulationContext ctx, BattleEvent evt, DynamicBuffer<VMTrigger> vmTriggerQueue, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
+    private void Dispatch(ref SystemState state, BattleSimulationContext ctx, BattleEvent evt, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
     {
+        var registryRef = SystemAPI.GetSingleton<ContentBlobRegistryComponent>().BlobRegistryReference;
+        ref var registry = ref registryRef.Value;
+
         var tempList = new NativeList<BehaviourExecutionRequest>(Allocator.Temp);
 
         ResolveEvent(ref state, ref ctx, evt);
 
-        for (int i = 0; i < vmTriggerQueue.Length; i++)
+        foreach (var (behaviours, entity) in SystemAPI.Query<DynamicBuffer<BehaviourReference>>().WithEntityAccess())
         {
-            var trigger = vmTriggerQueue[i];
-
-            if (trigger.EventType != evt.Type)
-                continue;
-
-            tempList.Add(new BehaviourExecutionRequest
+            for (int i = 0; i < behaviours.Length; i++)
             {
-                BehaviourID = trigger.BehaviourID,
-                Owner = trigger.Owner,
-                SourceEvent = evt,
-                Priority = trigger.Priority,
-                RegistrationIndex = trigger.RegistrationIndex
-            });
+                int behaviourIndex = behaviours[i].BehaviourIndex;
+                ref var behaviour = ref registry.Behaviours[behaviourIndex];
+                for (int t = 0; t < behaviour.Triggers.Length; t++)
+                {
+                    ref var trigger = ref behaviour.Triggers[t];
+
+                    if (trigger.EventType != evt.Type)
+                        continue;
+
+                    tempList.Add(new BehaviourExecutionRequest
+                    {
+                        BehaviourIndex = behaviourIndex,
+                        TriggerIndex = t,
+                        Owner = entity,
+                        SourceEvent = evt,
+                        Priority = trigger.Priority,
+                        RegistrationIndex = i
+                    });
+                }
+            }
         }
 
         tempList.Sort(new BehaviourExecutionComparer());
@@ -111,8 +133,9 @@ public partial struct BattleEventProcessingSystem : ISystem
     private void ExecuteBehaviour(ref SystemState state, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
     {
         LogExecution(ref state, battle, request);
+        Logging.System($"Requesting program for ({request.BehaviourIndex}, {request.TriggerIndex})");
 
-        var program = AbilityProgramRegistry.Get(request.BehaviourID);
+        var program = AbilityProgramRegistry.Get(request.BehaviourIndex, request.TriggerIndex);
 
         AbilityExecutionFrame frame = new AbilityExecutionFrame
         {
@@ -138,7 +161,7 @@ public partial struct BattleEventProcessingSystem : ISystem
 
     private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)
     {
-        LogExecution(ref state, ctx.Battle, evt);
+        LogEvent(ref state, ctx.Battle, evt);
         switch (evt.Type)
         {
             case BattleEventType.DamageRequested:
@@ -161,16 +184,16 @@ public partial struct BattleEventProcessingSystem : ISystem
         {
             StepIndex = counter.ValueRO.Value,
             EventType = request.SourceEvent.Type,
-            BehaviourID = request.BehaviourID,
+            BehaviourID = request.BehaviourIndex,
             RngStateA = rng.StateA,
             RngStateB = rng.StateB
         });
 
         counter.ValueRW.Value++;
 
-        Logging.System($"[Battle {battle.Index}] Step {counter.ValueRO.Value} | " + $"Event:{request.SourceEvent.Type} | " + $"Behaviour:{request.BehaviourID} | " + $"RNG:({rng.StateA},{rng.StateB})");
+        Logging.System($"[Battle {battle.Index}] Step {counter.ValueRO.Value} | " + $"Event:{request.SourceEvent.Type} | " + $"Behaviour:{request.BehaviourIndex} | " + $"RNG:({rng.StateA},{rng.StateB})");
     }
-    private void LogExecution(ref SystemState state, Entity battle, BattleEvent evt)
+    private void LogEvent(ref SystemState state, Entity battle, BattleEvent evt)
     {
         var counter = SystemAPI.GetComponentRW<BattleExecutionCounter>(battle);
         var logQueue = SystemAPI.GetBuffer<BattleExecutionLog>(battle);

@@ -19,9 +19,9 @@ MonoBehaviour:
   CharacterType: 0
   Speciality: 2
   CharacterBaseStats:
-    HP: 345
-    ATK: 435
-    DEF: 453
+    MaxHealth: 43
+    Attack: 23
+    Defense: 4
     CritDMG: 345
     CritRATE: 2
     Reactivity: 533

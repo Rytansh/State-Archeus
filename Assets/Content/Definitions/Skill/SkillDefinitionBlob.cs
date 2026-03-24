@@ -1,8 +1,9 @@
 using Unity.Entities;
 
-public struct SkillDefinitionBlob
+public struct SkillDefinitionBlob : IHasID
 {
     public uint ID;
+    public uint GetID() => ID;
     public byte Rarity;
     public byte Speciality; 
     public int Duration;
@@ -11,13 +12,14 @@ public struct SkillDefinitionBlob
 
     public uint NormalAbilityID;
     public uint DelayAndImprovementAbilityID;
+    public BlobArray<uint> BehaviourIDs;
 }
 
 public struct SkillBlobBaseStats
 {
-    public float ATK;
-    public float DEF;
-    public float HP;
+    public float Attack;
+    public float Defense;
+    public float Health;
 }
 
 public struct SkillDatabaseBlob

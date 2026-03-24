@@ -33,7 +33,7 @@ public partial struct RegistryLookupConsistencyTest : ISystem
                 continue;
             }
 
-            ref readonly var character = ref registry.Characters[index];
+            ref var character = ref registry.Characters[index];
 
             if (character.ID != id)
             {

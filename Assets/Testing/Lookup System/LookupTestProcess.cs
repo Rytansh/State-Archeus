@@ -1,12 +1,14 @@
 using UnityEngine;
 using Unity.Entities;
 
+[UpdateAfter(typeof(ContentLookupSystem))]
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 public partial struct LookupTestProcess : ISystem
 {
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<ContentLookupTables>();
+        state.RequireForUpdate<ContentBlobRegistryComponent>();
         // state.Enabled = true; comment this whenever you want to disable the test process
     }
 
@@ -20,7 +22,7 @@ public partial struct LookupTestProcess : ISystem
         if (lookups.CharacterIDToIndex.TryGetValue(testCharacterId, out int index))
         {
             ref var character = ref registry.Characters[index];
-            Logging.System($"[LookupValidation] Character found at index {index} with HP {character.CharacterBlobBaseStats.HP} and attack {character.CharacterBlobBaseStats.ATK}.");
+            Logging.System($"[LookupValidation] Character found at index {index} with HP {character.CharacterBlobBaseStats.MaxHealth} and attack {character.CharacterBlobBaseStats.Attack}.");
         }
         else
         {

@@ -28,9 +28,7 @@ public partial struct BattleSpawnRequestSystem : ISystem
             {
                 Battle = battle,
                 Slot = 1,
-                MaxHealth = 100,
-                Attack = 20,
-                Defense = 10
+                CharacterID = StableHash32.HashFromString("C1")
             });
 
             Entity req2 = ecb.CreateEntity();
@@ -39,9 +37,7 @@ public partial struct BattleSpawnRequestSystem : ISystem
             {
                 Battle = battle,
                 Slot = 2,
-                MaxHealth = 120,
-                Attack = 15,
-                Defense = 20
+                CharacterID = StableHash32.HashFromString("C2")
             });
 
             ecb.AddComponent<BattleSpawnRequestsIssuedTag>(battle);
