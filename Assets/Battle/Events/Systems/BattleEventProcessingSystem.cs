@@ -37,6 +37,9 @@ public partial struct BattleEventProcessingSystem : ISystem
             };
             int safetyCounter = 0;
 
+            var registryRef = SystemAPI.GetSingleton<ContentBlobRegistryComponent>().BlobRegistryReference;
+            ref var registry = ref registryRef.Value;
+
             while (true)
             {
                 if (++safetyCounter > MAX_EXECUTIONS)
@@ -54,7 +57,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                     var evt = chainedEventQueue[0].Event;
                     chainedEventQueue.RemoveAt(0);
 
-                    Dispatch(ref state, ctx, evt, executionRequestQueue);
+                    Dispatch(ref state, ref registry, ctx, evt, executionRequestQueue);
                     continue;
                 }
 
@@ -64,7 +67,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                     var request = executionRequestQueue[0];
                     executionRequestQueue.RemoveAt(0);
 
-                    ExecuteBehaviour(ref state, battle, chainedEventQueue, request);
+                    ExecuteBehaviour(ref state, registryRef, battle, chainedEventQueue, request);
                     continue;
                 }
 
@@ -74,7 +77,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                     var evt = mainEventQueue[0];
                     mainEventQueue.RemoveAt(0);
 
-                    Dispatch(ref state, ctx, evt, executionRequestQueue);
+                    Dispatch(ref state, ref registry, ctx, evt, executionRequestQueue);
                     continue;
                 }
 
@@ -85,10 +88,8 @@ public partial struct BattleEventProcessingSystem : ISystem
     }
 
 
-    private void Dispatch(ref SystemState state, BattleSimulationContext ctx, BattleEvent evt, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
+    private void Dispatch(ref SystemState state, ref ContentBlobRegistry registry, BattleSimulationContext ctx, BattleEvent evt, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
     {
-        var registryRef = SystemAPI.GetSingleton<ContentBlobRegistryComponent>().BlobRegistryReference;
-        ref var registry = ref registryRef.Value;
 
         var tempList = new NativeList<BehaviourExecutionRequest>(Allocator.Temp);
 
@@ -130,33 +131,33 @@ public partial struct BattleEventProcessingSystem : ISystem
         tempList.Dispose();
     }
 
-    private void ExecuteBehaviour(ref SystemState state, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
+    private void ExecuteBehaviour(ref SystemState state, BlobAssetReference<ContentBlobRegistry> registryRef, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
     {
         LogExecution(ref state, battle, request);
-        Logging.System($"Requesting program for ({request.BehaviourIndex}, {request.TriggerIndex})");
+        ref var registry = ref registryRef.Value;
 
-        var program = AbilityProgramRegistry.Get(request.BehaviourIndex, request.TriggerIndex);
+        ref var behaviour = ref registry.Behaviours[request.BehaviourIndex];
+        ref var trigger = ref behaviour.Triggers[request.TriggerIndex];
+
+        int programIndex = trigger.VMProgramIndex;
 
         AbilityExecutionFrame frame = new AbilityExecutionFrame
         {
-            Program = program,
+            ProgramIndex = programIndex,
             Source = request.SourceEvent.Source,
             Target = request.SourceEvent.Target,
             InstructionPointer = 0
         };
 
+
         AbilityExecutionContext context = new AbilityExecutionContext
         {
             ChainedEventQueue = chainedEventQueue,
-            CharacterStatsLookup = characterStatsLookup
+            CharacterStatsLookup = characterStatsLookup,
+            ContentRegistry = registryRef
         };
 
         AbilityInterpreter.Execute(ref frame, ref context);
-
-        if (frame.Stack.Length > 0)
-        {
-            Logging.System($"VM result: {frame.Stack[frame.Stack.Length - 1]}");
-        }
     }
 
     private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)

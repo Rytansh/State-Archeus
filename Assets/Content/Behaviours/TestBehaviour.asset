@@ -15,7 +15,7 @@ MonoBehaviour:
   ID: TestBehaviour
   Triggers:
   - EventType: 0
-    VMProgramID: fe
+    VMProgramID: TestAttack
     Priority: 0
     Conditions:
     - Type: 0

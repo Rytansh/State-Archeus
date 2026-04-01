@@ -7,5 +7,7 @@ namespace DBUS.Battle.VM.Data
     {
         public DynamicBuffer<ChainedBattleEvent> ChainedEventQueue;
         public ComponentLookup<CharacterStats> CharacterStatsLookup;
+
+        public BlobAssetReference<ContentBlobRegistry> ContentRegistry;
     }
 }

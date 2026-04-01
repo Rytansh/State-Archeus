@@ -170,6 +170,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ba6999407fd80de449afb5d638368930, type: 2}
   BehaviourDefinitions:
   - {fileID: 11400000, guid: f437e45ed32e5bc4c850dca4d4f883cc, type: 2}
+  AbilityProgramDefinitions:
+  - {fileID: 11400000, guid: 39bc287f1a6b1ac45b17d243295e9080, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

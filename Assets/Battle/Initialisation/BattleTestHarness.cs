@@ -19,7 +19,5 @@ public class BattleTestHarness : MonoBehaviour
             BattleConfigID = 0
         });
 
-        VMTestSetup.Init();
-
     }
 }

@@ -10,7 +10,7 @@ namespace DBUS.Battle.VM.Systems
         public static void Execute(ref AbilityExecutionFrame frame, ref AbilityExecutionContext context)
         {
             int safetyCounter = 0;
-            ref var program = ref frame.Program.Value;
+            ref var program = ref context.ContentRegistry.Value.AbilityPrograms[frame.ProgramIndex];
 
             while (frame.InstructionPointer < program.Instructions.Length)
             {
@@ -148,7 +148,7 @@ namespace DBUS.Battle.VM.Systems
                             }
                         });
 
-                        Logging.System($"VM emitted DamageRequested {frame.Source.Index} → {frame.Target.Index}");
+                        Logging.System($"VM emitted DamageRequested {frame.Source.Index} → {frame.Target.Index} with AttackMultiplier " + multiplier);
                         break;
                     }
                     
@@ -201,14 +201,20 @@ namespace DBUS.Battle.VM.Systems
         private static void Push(ref AbilityExecutionFrame frame, float value)
         {
             if (frame.Stack.Length >= 32)
-                throw new System.Exception("VM stack overflow.");
+            {
+                Logging.Warning("VM stack overflow.");
+                return;
+            }
             frame.Stack.Add(value);
         }
 
         private static float Pop(ref AbilityExecutionFrame frame)
         {
             if (frame.Stack.Length == 0)
-                throw new System.Exception("VM stack underflow.");
+            {
+                Logging.Warning("VM stack underflow.");
+                return 0;
+            }
 
             int last = frame.Stack.Length - 1;
             float value = frame.Stack[last];
@@ -220,7 +226,10 @@ namespace DBUS.Battle.VM.Systems
         private static float Peek(ref AbilityExecutionFrame frame)
         {
             if (frame.Stack.Length == 0)
-                throw new System.Exception("VM stack underflow.");
+            {
+                Logging.Warning("VM stack underflow.");
+                return 0;
+            }
 
             return frame.Stack[frame.Stack.Length - 1];
         }

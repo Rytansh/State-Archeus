@@ -8,7 +8,7 @@ namespace DBUS.Battle.VM.Data
         public Entity Source;
         public Entity Target;
 
-        public BlobAssetReference<AbilityProgram> Program;
+        public int ProgramIndex;
         public int InstructionPointer;
         public FixedList64Bytes<float> Stack;
     }

@@ -1,7 +1,9 @@
 using Unity.Collections;
 using Unity.Entities;
+using System;
 using Unity.Entities.Baking;
 using UnityEngine;
+using DBUS.Battle.VM.Data;
 using System.Collections.Generic;
 
 public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
@@ -11,7 +13,16 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         List<CharacterDefinition> validCharacterDefinitions = CharacterDefinitionParser.FilterValidCharacterDefinitions(authoring.CharacterDefinitions);
         List<SkillDefinition> validSkillDefinitions = SkillDefinitionParser.FilterValidSkillDefinitions(authoring.SkillDefinitions);
         List<BehaviourDefinition> validBehaviourDefinitions = BehaviourDefinitionParser.FilterValidBehaviourDefinitions(authoring.BehaviourDefinitions);
+        List<AbilityProgramDefinition> validAbilityProgramDefinitions = AbilityProgramDefinitionParser.FilterValidAbilityProgramDefinitions(authoring.AbilityProgramDefinitions);
         Entity ContentRegistryEntity = GetEntity(TransformUsageFlags.None);
+
+        var programIDToIndex = new Dictionary<uint, int>();
+
+        for (int i = 0; i < validAbilityProgramDefinitions.Count; i++)
+        {
+            uint id = StableHash32.HashFromString(validAbilityProgramDefinitions[i].ID);
+            programIDToIndex[id] = i;
+        }
 
         using (BlobBuilder builder = new BlobBuilder(Allocator.Temp))
         {
@@ -19,10 +30,12 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             BlobBuilderArray<CharacterDefinitionBlob> charactersToBake = builder.Allocate(ref root.Characters, validCharacterDefinitions.Count);
             BlobBuilderArray<SkillDefinitionBlob> skillsToBake = builder.Allocate(ref root.Skills, validSkillDefinitions.Count);
             BlobBuilderArray<BehaviourDefinitionBlob> behavioursToBake = builder.Allocate(ref root.Behaviours, validBehaviourDefinitions.Count);
+            BlobBuilderArray<AbilityProgram> programsToBake = builder.Allocate(ref root.AbilityPrograms, validAbilityProgramDefinitions.Count);
 
             BakeAllCharacters(validCharacterDefinitions, ref charactersToBake, builder);
             BakeAllSkills(validSkillDefinitions, ref skillsToBake, builder);
-            BakeAllBehaviours(validBehaviourDefinitions, ref behavioursToBake, builder);
+            BakeAllBehaviours(validBehaviourDefinitions, ref behavioursToBake, builder, programIDToIndex);
+            BakeAllPrograms(validAbilityProgramDefinitions, ref programsToBake, builder);
 
             BlobAssetReference<ContentBlobRegistry> registryReference = builder.CreateBlobAssetReference<ContentBlobRegistry>(Allocator.Persistent);
             AddBlobAsset(ref registryReference, out Unity.Entities.Hash128 blobHash);
@@ -48,13 +61,22 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         }
     }
 
-    private static void BakeAllBehaviours(List<BehaviourDefinition> behaviourDefs, ref BlobBuilderArray<BehaviourDefinitionBlob> outputArray, BlobBuilder builder) 
+    private static void BakeAllBehaviours(List<BehaviourDefinition> behaviourDefs,ref BlobBuilderArray<BehaviourDefinitionBlob> outputArray,BlobBuilder builder,Dictionary<uint, int> programMap)
     { 
         for (int i = 0; i < behaviourDefs.Count; i++) 
         { 
-            WriteBehaviour(ref outputArray[i], behaviourDefs[i], ref builder); 
+            WriteBehaviour(ref outputArray[i], behaviourDefs[i], ref builder, programMap); 
             Logging.System("Baked behaviour " + behaviourDefs[i].name + " successfully."); 
         } 
+    }
+
+    private static void BakeAllPrograms(List<AbilityProgramDefinition> programDefs, ref BlobBuilderArray<AbilityProgram> outputArray, BlobBuilder builder)
+    {
+        for (int i = 0; i < programDefs.Count; i++)
+        {
+            WriteProgram(ref outputArray[i], programDefs[i], ref builder);
+            Logging.System("Baked behaviour " + programDefs[i].name + " successfully."); 
+        }
     }
 
     //########### Writers ###########//
@@ -109,7 +131,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         for (int i = 0; i < def.BehaviourIDs.Count; i++){behaviourIds[i] = StableHash32.HashFromString(def.BehaviourIDs[i]);}
     }
 
-    private static void WriteBehaviour(ref BehaviourDefinitionBlob blob, BehaviourDefinition def, ref BlobBuilder builder)
+    private static void WriteBehaviour(ref BehaviourDefinitionBlob blob, BehaviourDefinition def, ref BlobBuilder builder, Dictionary<uint, int> programMap)
     { 
         blob.ID = StableHash32.HashFromString(def.ID); 
         var triggers = builder.Allocate(ref blob.Triggers, def.Triggers.Count); 
@@ -118,7 +140,13 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             var trigger = def.Triggers[i]; 
             ref var blobListener = ref triggers[i]; 
             blobListener.EventType = trigger.EventType; 
-            blobListener.VMProgramID = StableHash32.HashFromString(trigger.VMProgramID); 
+            uint programID = StableHash32.HashFromString(trigger.VMProgramID);
+            if (!programMap.TryGetValue(programID, out int programIndex))
+            {
+                Logging.Error($"Program not found for ID {trigger.VMProgramID}");
+                programIndex = -1;
+            }
+            blobListener.VMProgramIndex = programIndex;
             blobListener.Priority = trigger.Priority; 
 
             var conditions = builder.Allocate( ref blobListener.Conditions, trigger.Conditions.Count ); 
@@ -132,6 +160,27 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
                 }; 
             } 
         } 
+    }
+
+    private static void WriteProgram(ref AbilityProgram blob,AbilityProgramDefinition def,ref BlobBuilder builder)
+    {
+        blob.ID = StableHash32.HashFromString(def.ID);
+
+        var instructions = builder.Allocate(ref blob.Instructions, def.Instructions.Count);
+
+        for (int i = 0; i < def.Instructions.Count; i++)
+        {
+            var defInstr = def.Instructions[i];
+
+            instructions[i] = new AbilityInstruction
+            {
+                Opcode = defInstr.Opcode,
+                A = defInstr.Opcode == AbilityOpcode.PushConst
+                    ? BitConverter.SingleToInt32Bits(defInstr.FloatValue)
+                    : defInstr.A,
+                B = defInstr.B
+            };
+        }
     }
 
 }
