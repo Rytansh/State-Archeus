@@ -25,3 +25,10 @@ public enum BattleEventType : ushort
     EntityKilled,
     ReactionTriggered
 }
+
+public enum BattleEventPhase
+{
+    PreResolution,
+    Resolution,
+    PostResolution
+}

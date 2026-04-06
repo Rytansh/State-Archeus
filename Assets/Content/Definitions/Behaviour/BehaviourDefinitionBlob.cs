@@ -10,6 +10,7 @@ public struct BehaviourDefinitionBlob : IHasID
 public struct BehaviourTriggerBlob
 {
     public BattleEventType EventType;
+    public BattleEventPhase Phase;
     public int VMProgramIndex;
     public BlobArray<EventConditionBlob> Conditions;
     public int Priority;
@@ -18,5 +19,6 @@ public struct BehaviourTriggerBlob
 public struct EventConditionBlob
 {
     public ConditionType Type;
+    public ConditionTarget Target;
     public float Value;
 }

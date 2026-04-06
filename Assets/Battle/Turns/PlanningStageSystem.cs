@@ -40,19 +40,23 @@ public partial struct PlanningStageSystem : ISystem
 
             var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
 
-            eventBuffer.Add(new BattleEvent
+            foreach (var (stats, entity) in SystemAPI.Query<CharacterStats>().WithEntityAccess())
             {
-                Type = BattleEventType.TestEvent,
-                Source = player,          // or any entity you want
-                Target = player,          // self-target is fine for testing
-                Payload = new EventPayload
+                eventBuffer.Add(new BattleEvent
                 {
-                    Damage = new DamagePayload
+                    Type = BattleEventType.TestEvent,
+                    Source = entity,
+                    Target = entity,
+                    Payload = new EventPayload
                     {
-                        AttackMultiplier = 1.0f
+                        Damage = new DamagePayload
+                        {
+                            AttackMultiplier = 1.0f
+                        }
                     }
-                }
-            });
+                });
+                break;
+            }
 
             Logging.System("Damage dealt event fired.");
             ecb.DestroyEntity(requestEntity);

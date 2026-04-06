@@ -6,6 +6,5 @@ public struct BattleEvent : IBufferElementData
 
     public Entity Source;
     public Entity Target;
-
     public EventPayload Payload;
 }

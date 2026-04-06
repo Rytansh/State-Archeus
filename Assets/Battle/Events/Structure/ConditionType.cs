@@ -2,6 +2,15 @@
 public enum ConditionType
 {
     None,
-    SourceIsSelf,
-    TargetIsSelf,
+    HPBelowPercent,
+    HPBelowFlat,
+    HPAbovePercent,
+    HPAboveFlat,
+    DamageAbove,
+    DamageBelow,
+}
+public enum ConditionTarget
+{
+    Self,
+    Target
 }

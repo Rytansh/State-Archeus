@@ -12,12 +12,11 @@ public class BehaviourDefinition : ScriptableObject
 public class BehaviourTriggerDefinition
 {
     public BattleEventType EventType;
+    public BattleEventPhase Phase;
 
     [Tooltip("VM Program ID to execute")]
     public string VMProgramID;
-
     public int Priority;
-
     public List<EventConditionDefinition> Conditions = new();
 }
 
@@ -25,7 +24,10 @@ public class BehaviourTriggerDefinition
 public class EventConditionDefinition
 {
     public ConditionType Type;
+    public ConditionTarget Target;
 
     [Tooltip("Used for numeric comparisons (%, stacks, etc.)")]
     public float Value;
 }
+
+

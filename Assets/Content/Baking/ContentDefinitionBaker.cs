@@ -140,6 +140,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             var trigger = def.Triggers[i]; 
             ref var blobListener = ref triggers[i]; 
             blobListener.EventType = trigger.EventType; 
+            blobListener.Phase = trigger.Phase;
             uint programID = StableHash32.HashFromString(trigger.VMProgramID);
             if (!programMap.TryGetValue(programID, out int programIndex))
             {
@@ -156,6 +157,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
                 conditions[j] = new EventConditionBlob 
                 { 
                     Type = defCondition.Type, 
+                    Target = defCondition.Target,
                     Value = defCondition.Value 
                 }; 
             } 

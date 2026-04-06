@@ -7,6 +7,7 @@ using DBUS.Battle.Components.Determinism;
 using DBUS.Battle.VM.Data;
 using DBUS.Battle.VM.Systems;
 using DBUS.Battle.Resolvers;
+using UnityEngine.InputSystem;
 
 [UpdateInGroup(typeof(BattleSimulationGroup))]
 public partial struct BattleEventProcessingSystem : ISystem
@@ -14,7 +15,6 @@ public partial struct BattleEventProcessingSystem : ISystem
     private const int MAX_EXECUTIONS = 10000;
     private ComponentLookup<CharacterStats> characterStatsLookup;
     private ComponentLookup<CurrentHealth> characterHPLookup;
-
     public void OnCreate(ref SystemState state)
     {
         characterStatsLookup = state.GetComponentLookup<CharacterStats>(true);
@@ -27,7 +27,11 @@ public partial struct BattleEventProcessingSystem : ISystem
 
         foreach (var (mainEventQueue, chainedEventQueue, executionRequestQueue, battle) in SystemAPI.Query<DynamicBuffer<BattleEvent>, DynamicBuffer<ChainedBattleEvent>, DynamicBuffer<BehaviourExecutionRequest>>().WithAll<BattleTag>().WithEntityAccess())
         {
-            if (mainEventQueue.Length == 0 && chainedEventQueue.Length == 0 && executionRequestQueue.Length == 0) {continue;}
+            if (mainEventQueue.Length == 0 && chainedEventQueue.Length == 0 && executionRequestQueue.Length == 0) continue;
+            if (!SystemAPI.HasSingleton<ContentBlobRegistryComponent>()) continue;
+
+            int safetyCounter = 0;
+
             BattleSimulationContext ctx = new BattleSimulationContext
             {
                 Battle = battle,
@@ -35,65 +39,166 @@ public partial struct BattleEventProcessingSystem : ISystem
                 StatsLookup = characterStatsLookup,
                 HealthLookup = characterHPLookup
             };
-            int safetyCounter = 0;
 
             var registryRef = SystemAPI.GetSingleton<ContentBlobRegistryComponent>().BlobRegistryReference;
             ref var registry = ref registryRef.Value;
 
-            while (true)
+            NativeList<EventFrame> eventStack = new NativeList<EventFrame>(64, Allocator.Temp);
+
+            // Seed stack from main queue
+            for (int i = mainEventQueue.Length - 1; i >= 0; i--)
+            {
+                eventStack.Add(new EventFrame
+                {
+                    Event = mainEventQueue[i],
+                    Phase = BattleEventPhase.PreResolution,
+                    PhaseStarted = false
+                });
+            }
+            mainEventQueue.Clear();
+
+            while (eventStack.Length > 0)
             {
                 if (++safetyCounter > MAX_EXECUTIONS)
                 {
-                    Logging.Warning($"[Battle] Fatal error - TOO MANY EVENT EXECUTIONS - clearing event queue for {battle}.");
-                    mainEventQueue.Clear();
+                    Logging.Warning($"[Battle] Fatal error - TOO MANY EVENT EXECUTIONS - clearing.");
+                    eventStack.Clear();
                     chainedEventQueue.Clear();
                     executionRequestQueue.Clear();
                     break;
                 }
 
-                // 1. Chained events (highest priority)
-                if (chainedEventQueue.Length > 0)
-                {
-                    var evt = chainedEventQueue[0].Event;
-                    chainedEventQueue.RemoveAt(0);
+                ref var frame = ref eventStack.ElementAt(eventStack.Length - 1);
 
-                    Dispatch(ref state, ref registry, ctx, evt, executionRequestQueue);
-                    continue;
-                }
-
-                // 2. Behaviour executions
+                // 🔥 1. VM INTERRUPTS (always first)
                 if (executionRequestQueue.Length > 0)
                 {
-                    var request = executionRequestQueue[0];
-                    executionRequestQueue.RemoveAt(0);
+                    int last = executionRequestQueue.Length - 1;
+                    var request = executionRequestQueue[last];
+                    executionRequestQueue.RemoveAt(last);
 
                     ExecuteBehaviour(ref state, registryRef, battle, chainedEventQueue, request);
                     continue;
                 }
 
-                // 3. Main events (lowest priority)
-                if (mainEventQueue.Length > 0)
+                // 🔥 2. CHILD EVENTS (push immediately → stack)
+                if (chainedEventQueue.Length > 0)
                 {
-                    var evt = mainEventQueue[0];
-                    mainEventQueue.RemoveAt(0);
+                    int last = chainedEventQueue.Length - 1;
+                    var evt = chainedEventQueue[last].Event;
+                    chainedEventQueue.RemoveAt(last);
 
-                    Dispatch(ref state, ref registry, ctx, evt, executionRequestQueue);
+                    eventStack.Add(new EventFrame
+                    {
+                        Event = evt,
+                        Phase = BattleEventPhase.PreResolution,
+                        PhaseStarted = false
+                    });
+
                     continue;
                 }
 
-                // Nothing left → we're done
-                break;
+                // 🔥 3. PROCESS CURRENT FRAME
+                switch (frame.Phase)
+                {
+                    case BattleEventPhase.PreResolution:
+                    {
+                        if (!frame.PhaseStarted)
+                        {
+                            Logging.System($"DISPATCH → {frame.Event.Type} | Pre");
+
+                            CollectBehaviours(ref state, ref registry, frame.Event, frame.Phase, executionRequestQueue);
+                            frame.PhaseStarted = true;
+                            continue; // wait for VM / children
+                        }
+
+                        // Only advance when no work remains
+                        frame.Phase = BattleEventPhase.Resolution;
+                        frame.PhaseStarted = false;
+                        continue;
+                    }
+
+                    case BattleEventPhase.Resolution:
+                    {
+                        if (!frame.PhaseStarted)
+                        {
+                            Logging.System($"DISPATCH → {frame.Event.Type} | Resolution");
+
+                            ResolveEvent(ref state, ref ctx, frame.Event);
+                            frame.PhaseStarted = true;
+                            continue; // allow chained events to run
+                        }
+
+                        frame.Phase = BattleEventPhase.PostResolution;
+                        frame.PhaseStarted = false;
+                        continue;
+                    }
+
+                    case BattleEventPhase.PostResolution:
+                    {
+                        if (!frame.PhaseStarted)
+                        {
+                            Logging.System($"DISPATCH → {frame.Event.Type} | Post");
+                            CollectBehaviours(ref state, ref registry, frame.Event, frame.Phase, executionRequestQueue);
+                            frame.PhaseStarted = true;
+                            continue;
+                        }
+
+                        // ✅ Fully done → pop
+                        eventStack.RemoveAt(eventStack.Length - 1);
+                        continue;
+                    }
+                }
             }
+            eventStack.Dispose();
         }
     }
 
-
-    private void Dispatch(ref SystemState state, ref ContentBlobRegistry registry, BattleSimulationContext ctx, BattleEvent evt, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
+    private void ExecuteBehaviour(ref SystemState state, BlobAssetReference<ContentBlobRegistry> registryRef, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
     {
+        ref var registry = ref registryRef.Value;
 
+        ref var behaviour = ref registry.Behaviours[request.BehaviourIndex];
+        ref var trigger = ref behaviour.Triggers[request.TriggerIndex];
+
+        int programIndex = trigger.VMProgramIndex;
+
+        AbilityExecutionFrame frame = new AbilityExecutionFrame
+        {
+            ProgramIndex = programIndex,
+            Source = request.Owner,
+            Target = request.Owner,
+            InstructionPointer = 0
+        };
+
+
+        AbilityExecutionContext context = new AbilityExecutionContext
+        {
+            ChainedEventQueue = chainedEventQueue,
+            CharacterStatsLookup = characterStatsLookup,
+            ContentRegistry = registryRef
+        };
+
+        AbilityInterpreter.Execute(ref frame, ref context);
+    }
+
+    private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case BattleEventType.DamageRequested:
+                DamageRequestResolver.Resolve(ref ctx, evt);
+                break;
+
+            // future resolvers
+            // case BattleEventType.HealRequested:
+            // case BattleEventType.ApplyBuff:
+        }
+    }
+
+    private void CollectBehaviours(ref SystemState state, ref ContentBlobRegistry registry, BattleEvent evt, BattleEventPhase phase, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
+    {
         var tempList = new NativeList<BehaviourExecutionRequest>(Allocator.Temp);
-
-        ResolveEvent(ref state, ref ctx, evt);
 
         foreach (var (behaviours, entity) in SystemAPI.Query<DynamicBuffer<BehaviourReference>>().WithEntityAccess())
         {
@@ -101,11 +206,15 @@ public partial struct BattleEventProcessingSystem : ISystem
             {
                 int behaviourIndex = behaviours[i].BehaviourIndex;
                 ref var behaviour = ref registry.Behaviours[behaviourIndex];
+
                 for (int t = 0; t < behaviour.Triggers.Length; t++)
                 {
                     ref var trigger = ref behaviour.Triggers[t];
 
                     if (trigger.EventType != evt.Type)
+                        continue;
+
+                    if (trigger.Phase != phase)
                         continue;
 
                     tempList.Add(new BehaviourExecutionRequest
@@ -131,88 +240,4 @@ public partial struct BattleEventProcessingSystem : ISystem
         tempList.Dispose();
     }
 
-    private void ExecuteBehaviour(ref SystemState state, BlobAssetReference<ContentBlobRegistry> registryRef, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
-    {
-        LogExecution(ref state, battle, request);
-        ref var registry = ref registryRef.Value;
-
-        ref var behaviour = ref registry.Behaviours[request.BehaviourIndex];
-        ref var trigger = ref behaviour.Triggers[request.TriggerIndex];
-
-        int programIndex = trigger.VMProgramIndex;
-
-        AbilityExecutionFrame frame = new AbilityExecutionFrame
-        {
-            ProgramIndex = programIndex,
-            Source = request.SourceEvent.Source,
-            Target = request.SourceEvent.Target,
-            InstructionPointer = 0
-        };
-
-
-        AbilityExecutionContext context = new AbilityExecutionContext
-        {
-            ChainedEventQueue = chainedEventQueue,
-            CharacterStatsLookup = characterStatsLookup,
-            ContentRegistry = registryRef
-        };
-
-        AbilityInterpreter.Execute(ref frame, ref context);
-    }
-
-    private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)
-    {
-        LogEvent(ref state, ctx.Battle, evt);
-        switch (evt.Type)
-        {
-            case BattleEventType.DamageRequested:
-                DamageRequestResolver.Resolve(ref ctx, evt);
-                break;
-
-            // future resolvers
-            // case BattleEventType.HealRequested:
-            // case BattleEventType.ApplyBuff:
-        }
-    }
-
-    private void LogExecution(ref SystemState state, Entity battle, BehaviourExecutionRequest request)
-    {
-        var counter = SystemAPI.GetComponentRW<BattleExecutionCounter>(battle);
-        var rng = SystemAPI.GetComponent<BattleRNG>(battle);
-        var logQueue = SystemAPI.GetBuffer<BattleExecutionLog>(battle);
-
-        logQueue.Add(new BattleExecutionLog
-        {
-            StepIndex = counter.ValueRO.Value,
-            EventType = request.SourceEvent.Type,
-            BehaviourID = request.BehaviourIndex,
-            RngStateA = rng.StateA,
-            RngStateB = rng.StateB
-        });
-
-        counter.ValueRW.Value++;
-
-        Logging.System($"[Battle {battle.Index}] Step {counter.ValueRO.Value} | " + $"Event:{request.SourceEvent.Type} | " + $"Behaviour:{request.BehaviourIndex} | " + $"RNG:({rng.StateA},{rng.StateB})");
-    }
-    private void LogEvent(ref SystemState state, Entity battle, BattleEvent evt)
-    {
-        var counter = SystemAPI.GetComponentRW<BattleExecutionCounter>(battle);
-        var logQueue = SystemAPI.GetBuffer<BattleExecutionLog>(battle);
-
-        logQueue.Add(new BattleExecutionLog
-        {
-            StepIndex = counter.ValueRO.Value,
-            EventType = evt.Type,
-            BehaviourID = 0,
-            RngStateA = 0,
-            RngStateB = 0
-        });
-
-        counter.ValueRW.Value++;
-
-        Logging.System(
-            $"[Battle {battle.Index}] Step {counter.ValueRO.Value} | " +
-            $"Event:{evt.Type}"
-        );
-    }
 }
