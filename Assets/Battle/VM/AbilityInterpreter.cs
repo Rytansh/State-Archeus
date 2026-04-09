@@ -1,13 +1,14 @@
 using Unity.Entities;
 using System;
 using DBUS.Battle.VM.Data;
+using System.Text;
 
 namespace DBUS.Battle.VM.Systems
 {
     public static class AbilityInterpreter
     {
         private const int MAX_VM_STEPS = 256;
-        public static void Execute(ref AbilityExecutionFrame frame, ref AbilityExecutionContext context)
+        public static void Execute(ref AbilityExecutionFrame frame, ref AbilityExecutionContext context, ref BattleEvent evt)
         {
             int safetyCounter = 0;
             ref var program = ref context.ContentRegistry.Value.AbilityPrograms[frame.ProgramIndex];
@@ -27,7 +28,7 @@ namespace DBUS.Battle.VM.Systems
                     // VALUE INTRODUCTION OPCODES //
                     case AbilityOpcode.PushConst:
                     {
-                        float value = BitConverter.Int32BitsToSingle(instruction.A);
+                        float value = VMEncoding.DecodeFloat(instruction.A);
                         Push(ref frame, value);
                         break;
                     }
@@ -42,6 +43,77 @@ namespace DBUS.Battle.VM.Systems
                             _ => 0
                         };
                         Push(ref frame, value);
+                        break;
+                    }
+                    case AbilityOpcode.PushEventValue:
+                    {
+                        var type = (EventValueType)instruction.A;
+
+                        float value = type switch
+                        {
+                            EventValueType.DamageBase => evt.Payload.Damage.BaseDamage,
+                            EventValueType.DamageFinal => evt.Payload.Damage.FinalDamage,
+                            EventValueType.DamageMultiplier => evt.Payload.Damage.AttackMultiplier,
+                            _ => 0f
+                        };
+
+                        Push(ref frame, value);
+                        break;
+                    }
+
+                    case AbilityOpcode.LoadState:
+                    {
+                        int index = instruction.A;
+
+                        var state = context.StateBuffer[context.StateIndex];
+
+                        float value = (index < state.Memory.Length) ? state.Memory[index] : 0f;
+
+                        Push(ref frame, value);
+                        break;
+                    }
+
+                    case AbilityOpcode.StoreState:
+                    {
+                        int index = instruction.A;
+                        float value = Pop(ref frame);
+
+                        var state = context.StateBuffer[context.StateIndex];
+
+                        while (state.Memory.Length <= index)
+                        {
+                            state.Memory.Add(0f);
+                        }
+
+                        state.Memory[index] = value;
+
+                        // 🔥 THIS is the missing piece
+                        context.StateBuffer[context.StateIndex] = state;
+
+                        break;
+                    }
+
+                    case AbilityOpcode.ModifyEventValue:
+                    {
+                        var type = (EventValueType)instruction.A;
+
+                        float value = Pop(ref frame);
+
+                        switch (type)
+                        {
+                            case EventValueType.DamageFinal:
+                                evt.Payload.Damage.FinalDamage = value;
+                                break;
+
+                            case EventValueType.DamageBase:
+                                evt.Payload.Damage.BaseDamage = value;
+                                break;
+
+                            case EventValueType.DamageMultiplier:
+                                evt.Payload.Damage.AttackMultiplier = value;
+                                break;
+                        }
+
                         break;
                     }
 
@@ -106,7 +178,11 @@ namespace DBUS.Battle.VM.Systems
                         float b = Pop(ref frame);
                         float a = Pop(ref frame);
 
-                        Push(ref frame, a >= b ? 1f : 0f);
+                        float result = a >= b ? 1f : 0f;
+
+                        Logging.System($"[VM] GREATER_EQUAL: {a} >= {b} → {result}");
+
+                        Push(ref frame, result);
                         break;
                     }
 
@@ -133,21 +209,23 @@ namespace DBUS.Battle.VM.Systems
                     case AbilityOpcode.DealDamage:
                     {
                         float multiplier = Pop(ref frame);
+                        var stats = context.CharacterStatsLookup[frame.Source];
 
                         EmitEvent(ref context, new BattleEvent
                         {
                             Type = BattleEventType.DamageRequested,
+                            Scope = BattleEventScope.Targeted,
                             Source = frame.Source,
                             Target = frame.Target,
                             Payload = new EventPayload
                             {
                                 Damage = new DamagePayload
                                 {
-                                    AttackMultiplier = multiplier
+                                    AttackMultiplier = multiplier,
+                                    BaseDamage = stats.Attack * multiplier 
                                 }
                             }
                         });
-
                         Logging.System($"VM emitted DamageRequested {frame.Source.Index} → {frame.Target.Index} with AttackMultiplier " + multiplier);
                         break;
                     }
@@ -173,17 +251,22 @@ namespace DBUS.Battle.VM.Systems
                     case AbilityOpcode.JumpIfTrue:
                     {
                         float cond = Pop(ref frame);
+
+                        Logging.System($"[VM] JUMP_IF_TRUE cond = {cond}, target = {instruction.A}");
+
                         if (cond != 0f)
                         {
+                            Logging.System($"[VM] >>> JUMPING to {instruction.A}");
                             frame.InstructionPointer = instruction.A;
                             continue;
                         }
+
                         break;
                     }
 
                     case AbilityOpcode.End:
                     {
-                        break;
+                        return;
                     }
 
                     // DEFAULT

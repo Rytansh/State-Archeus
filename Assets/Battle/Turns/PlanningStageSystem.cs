@@ -45,6 +45,7 @@ public partial struct PlanningStageSystem : ISystem
                 eventBuffer.Add(new BattleEvent
                 {
                     Type = BattleEventType.TestEvent,
+                    Scope = BattleEventScope.Targeted,
                     Source = entity,
                     Target = entity,
                     Payload = new EventPayload

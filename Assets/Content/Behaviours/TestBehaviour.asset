@@ -15,8 +15,23 @@ MonoBehaviour:
   ID: TestBehaviour
   Triggers:
   - EventType: 0
+    Phase: 0
     VMProgramID: TestAttack
     Priority: 0
+    Conditions: []
+  - EventType: 9
+    Phase: 0
+    VMProgramID: ReduceDamage20Percent
+    Priority: 0
     Conditions:
-    - Type: 0
-      Value: 0
+    - Type: 1
+      Target: 1
+      Value: 80
+    - Type: 5
+      Target: 1
+      Value: 100
+  - EventType: 1
+    Phase: 0
+    VMProgramID: ResetTriggerTurnStart
+    Priority: 0
+    Conditions: []

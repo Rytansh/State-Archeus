@@ -164,7 +164,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         } 
     }
 
-    private static void WriteProgram(ref AbilityProgram blob,AbilityProgramDefinition def,ref BlobBuilder builder)
+    private static void WriteProgram(ref AbilityProgram blob, AbilityProgramDefinition def, ref BlobBuilder builder)
     {
         blob.ID = StableHash32.HashFromString(def.ID);
 
@@ -174,13 +174,15 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         {
             var defInstr = def.Instructions[i];
 
+            int a = defInstr.A;
+            int b = defInstr.B;
+
+
             instructions[i] = new AbilityInstruction
             {
                 Opcode = defInstr.Opcode,
-                A = defInstr.Opcode == AbilityOpcode.PushConst
-                    ? BitConverter.SingleToInt32Bits(defInstr.FloatValue)
-                    : defInstr.A,
-                B = defInstr.B
+                A = a,
+                B = b
             };
         }
     }

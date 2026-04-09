@@ -11,30 +11,18 @@ namespace DBUS.Battle.Resolvers
             var attacker = evt.Source;
             var target = evt.Target;
 
-            if (!ctx.StatsLookup.HasComponent(attacker) ||
-                !ctx.StatsLookup.HasComponent(target))
-                return;
+            if (!ctx.StatsLookup.HasComponent(target)) return;
 
-            var attackerStats = ctx.StatsLookup[attacker];
+            // 1. CONSUME: Get the BaseDamage that was potentially modified in PreResolution
+            float modifiedBase = evt.Payload.Damage.BaseDamage;
 
-            float multiplier = evt.Payload.Damage.AttackMultiplier;
+            // 2. CALCULATE: Turn Base into Final (Apply Target Stats)
+            var targetStats = ctx.StatsLookup[target];
+            
+            // Example: Simple Defense subtraction (Min damage of 1)
+            float finalDamage = Math.Max(1f, modifiedBase - targetStats.Defense);
 
-            int damage = (int)(attackerStats.Attack * multiplier);
-
-            var targetHP = ctx.HealthLookup.GetRefRW(target);
-
-            float hpBefore = targetHP.ValueRO.Value;
-
-            targetHP.ValueRW.Value -= damage;
-            targetHP.ValueRW.Value = Math.Max(0, targetHP.ValueRW.Value);
-
-            float hpAfter = targetHP.ValueRW.Value;
-
-            Logging.System(
-                $"DamageRequestResolver | {attacker.Index} → {target.Index} | " +
-                $"DMG: {damage} | HP {hpBefore} → {hpAfter}"
-            );
-
+            // 3. EMIT: The "It actually happened" event
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
                 Event = new BattleEvent
@@ -46,7 +34,9 @@ namespace DBUS.Battle.Resolvers
                     {
                         Damage = new DamagePayload
                         {
-                            FinalDamage = damage
+                            AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
+                            BaseDamage = modifiedBase, // Carry over the modified base
+                            FinalDamage = finalDamage  // The actual HP to subtract
                         }
                     }
                 }

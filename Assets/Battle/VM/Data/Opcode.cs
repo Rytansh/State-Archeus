@@ -5,6 +5,11 @@ namespace DBUS.Battle.VM.Data
     {
         PushConst,
         PushStat,
+        PushEventValue,
+        LoadState,
+        
+        StoreState,
+        ModifyEventValue,
 
         Add,
         Sub,

@@ -9,5 +9,7 @@ namespace DBUS.Battle.VM.Data
         public ComponentLookup<CharacterStats> CharacterStatsLookup;
 
         public BlobAssetReference<ContentBlobRegistry> ContentRegistry;
+        public DynamicBuffer<BehaviourRuntimeState> StateBuffer;
+        public int StateIndex;
     }
 }

@@ -63,6 +63,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                 {
                     Logging.Warning($"[Battle] Fatal error - TOO MANY EVENT EXECUTIONS - clearing.");
                     eventStack.Clear();
+                    mainEventQueue.Clear();
                     chainedEventQueue.Clear();
                     executionRequestQueue.Clear();
                     break;
@@ -77,7 +78,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                     var request = executionRequestQueue[last];
                     executionRequestQueue.RemoveAt(last);
 
-                    ExecuteBehaviour(ref state, registryRef, battle, chainedEventQueue, request);
+                    ExecuteBehaviour(ref state, registryRef, battle, chainedEventQueue, request, ref frame.Event);
                     continue;
                 }
 
@@ -107,7 +108,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                         {
                             Logging.System($"DISPATCH → {frame.Event.Type} | Pre");
 
-                            CollectBehaviours(ref state, ref registry, frame.Event, frame.Phase, executionRequestQueue);
+                            CollectBehaviours(ref state, ref registry, ref ctx, frame.Event, frame.Phase, executionRequestQueue);
                             frame.PhaseStarted = true;
                             continue; // wait for VM / children
                         }
@@ -139,7 +140,7 @@ public partial struct BattleEventProcessingSystem : ISystem
                         if (!frame.PhaseStarted)
                         {
                             Logging.System($"DISPATCH → {frame.Event.Type} | Post");
-                            CollectBehaviours(ref state, ref registry, frame.Event, frame.Phase, executionRequestQueue);
+                            CollectBehaviours(ref state, ref registry, ref ctx, frame.Event, frame.Phase, executionRequestQueue);
                             frame.PhaseStarted = true;
                             continue;
                         }
@@ -154,49 +155,39 @@ public partial struct BattleEventProcessingSystem : ISystem
         }
     }
 
-    private void ExecuteBehaviour(ref SystemState state, BlobAssetReference<ContentBlobRegistry> registryRef, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request)
+    private void ExecuteBehaviour(ref SystemState state, BlobAssetReference<ContentBlobRegistry> registryRef, Entity battle, DynamicBuffer<ChainedBattleEvent> chainedEventQueue, BehaviourExecutionRequest request, ref BattleEvent evt)
     {
         ref var registry = ref registryRef.Value;
 
         ref var behaviour = ref registry.Behaviours[request.BehaviourIndex];
         ref var trigger = ref behaviour.Triggers[request.TriggerIndex];
+        var stateBuffer = SystemAPI.GetBuffer<BehaviourRuntimeState>(request.Owner);
+        int stateIndex = request.RegistrationIndex;
 
         int programIndex = trigger.VMProgramIndex;
 
         AbilityExecutionFrame frame = new AbilityExecutionFrame
         {
             ProgramIndex = programIndex,
-            Source = request.Owner,
-            Target = request.Owner,
+            BehaviourOwner = request.Owner,
+            Source = request.Source,
+            Target = request.Target,
             InstructionPointer = 0
         };
-
 
         AbilityExecutionContext context = new AbilityExecutionContext
         {
             ChainedEventQueue = chainedEventQueue,
             CharacterStatsLookup = characterStatsLookup,
-            ContentRegistry = registryRef
+            ContentRegistry = registryRef,
+            StateBuffer = stateBuffer,
+            StateIndex = stateIndex
         };
 
-        AbilityInterpreter.Execute(ref frame, ref context);
+        AbilityInterpreter.Execute(ref frame, ref context, ref evt);
     }
 
-    private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)
-    {
-        switch (evt.Type)
-        {
-            case BattleEventType.DamageRequested:
-                DamageRequestResolver.Resolve(ref ctx, evt);
-                break;
-
-            // future resolvers
-            // case BattleEventType.HealRequested:
-            // case BattleEventType.ApplyBuff:
-        }
-    }
-
-    private void CollectBehaviours(ref SystemState state, ref ContentBlobRegistry registry, BattleEvent evt, BattleEventPhase phase, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
+    private void CollectBehaviours(ref SystemState state, ref ContentBlobRegistry registry, ref BattleSimulationContext ctx, BattleEvent evt, BattleEventPhase phase, DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue)
     {
         var tempList = new NativeList<BehaviourExecutionRequest>(Allocator.Temp);
 
@@ -207,9 +198,9 @@ public partial struct BattleEventProcessingSystem : ISystem
                 int behaviourIndex = behaviours[i].BehaviourIndex;
                 ref var behaviour = ref registry.Behaviours[behaviourIndex];
 
-                for (int t = 0; t < behaviour.Triggers.Length; t++)
+                for (int triggerIndex = 0; triggerIndex < behaviour.Triggers.Length; triggerIndex++)
                 {
-                    ref var trigger = ref behaviour.Triggers[t];
+                    ref var trigger = ref behaviour.Triggers[triggerIndex];
 
                     if (trigger.EventType != evt.Type)
                         continue;
@@ -217,14 +208,19 @@ public partial struct BattleEventProcessingSystem : ISystem
                     if (trigger.Phase != phase)
                         continue;
 
+                    if (!EvaluateConditions(ref ctx, evt, entity, ref trigger))
+                        continue;
+
                     tempList.Add(new BehaviourExecutionRequest
                     {
                         BehaviourIndex = behaviourIndex,
-                        TriggerIndex = t,
-                        Owner = entity,
-                        SourceEvent = evt,
+                        TriggerIndex = triggerIndex,
                         Priority = trigger.Priority,
-                        RegistrationIndex = i
+                        RegistrationIndex = i,
+
+                        Owner = entity,
+                        Source = evt.Source,
+                        Target = evt.Target
                     });
                 }
             }
@@ -238,6 +234,127 @@ public partial struct BattleEventProcessingSystem : ISystem
         }
 
         tempList.Dispose();
+    }
+
+    private void ResolveEvent(ref SystemState state, ref BattleSimulationContext ctx, BattleEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case BattleEventType.DamageRequested:
+                DamageRequestResolver.Resolve(ref ctx, evt);
+                break;
+            case BattleEventType.DamageResolved:
+                DamageResolvedResolver.Resolve(ref ctx, evt);
+                break;
+
+            // future resolvers
+            // case BattleEventType.HealRequested:
+            // case BattleEventType.ApplyBuff:
+        }
+    }
+
+    private bool EvaluateConditions(ref BattleSimulationContext ctx, BattleEvent evt, Entity owner, ref BehaviourTriggerBlob trigger)
+    {
+        Logging.System($"[Condition] Checking {evt.Type} on {owner.Index}");
+
+        for (int i = 0; i < trigger.Conditions.Length; i++)
+        {
+            ref var cond = ref trigger.Conditions[i];
+
+            bool result = EvaluateCondition(ref ctx, evt, owner, cond);
+            Logging.System($"[Condition] Condition {cond.Type} → {result}");
+            if (!result)
+            {
+                Logging.System("[Condition] RESULT: FAILED");
+                return false;
+            }
+        }
+
+        Logging.System("[Condition] RESULT: PASSED");
+        return true;
+    }
+
+    private bool EvaluateCondition(ref BattleSimulationContext ctx, BattleEvent evt, Entity owner, EventConditionBlob cond)
+    {
+        Entity entity;
+
+        switch (cond.Target)
+        {
+            case ConditionTarget.Self:
+                entity = owner;
+                break;
+
+            case ConditionTarget.Target:
+                if (evt.Scope == BattleEventScope.Global)
+                {
+                    Logging.Warning($"[Condition] Target requested on GLOBAL event {evt.Type}");
+                    entity = Entity.Null;
+                }
+                else
+                {
+                    entity = evt.Target;
+                }
+                break;
+
+            default:
+                entity = owner;
+                break;
+        }
+
+        if (entity == Entity.Null)
+            return false;
+
+        switch (cond.Type)
+        {
+            case ConditionType.HPBelowPercent:
+            {
+                if (!ctx.HealthLookup.HasComponent(entity)) return false;
+
+                var hp = ctx.HealthLookup[entity];
+                var stats = ctx.StatsLookup[entity];
+
+                float percent = (hp.Value / stats.MaxHealth) * 100f;
+                return percent < cond.Value;
+            }
+
+            case ConditionType.HPAbovePercent:
+            {
+                if (!ctx.HealthLookup.HasComponent(entity)) return false;
+
+                var hp = ctx.HealthLookup[entity];
+                var stats = ctx.StatsLookup[entity];
+
+                float percent = (hp.Value / stats.MaxHealth) * 100f;
+                return percent > cond.Value;
+            }
+
+            case ConditionType.HPBelowFlat:
+            {
+                if (!ctx.HealthLookup.HasComponent(entity)) return false;
+
+                return ctx.HealthLookup[entity].Value < cond.Value;
+            }
+
+            case ConditionType.HPAboveFlat:
+            {
+                if (!ctx.HealthLookup.HasComponent(entity)) return false;
+
+                return ctx.HealthLookup[entity].Value > cond.Value;
+            }
+
+            case ConditionType.DamageAbove:
+            {
+                return evt.Payload.Damage.BaseDamage > cond.Value;
+            }
+
+            case ConditionType.DamageBelow:
+            {
+                return evt.Payload.Damage.BaseDamage < cond.Value;
+            }
+
+            default:
+                return true;
+        }
     }
 
 }

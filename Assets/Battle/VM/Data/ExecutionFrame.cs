@@ -5,6 +5,7 @@ namespace DBUS.Battle.VM.Data
 {
     public struct AbilityExecutionFrame
     {
+        public Entity BehaviourOwner;
         public Entity Source;
         public Entity Target;
 

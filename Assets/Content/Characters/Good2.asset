@@ -19,9 +19,9 @@ MonoBehaviour:
   CharacterType: 0
   Speciality: 2
   CharacterBaseStats:
-    MaxHealth: 43
-    Attack: 23
-    Defense: 4
+    MaxHealth: 1000
+    Attack: 50
+    Defense: 0
     CritDMG: 345
     CritRATE: 2
     Reactivity: 533
@@ -35,3 +35,4 @@ MonoBehaviour:
   NormalAttackID: Destructo_Disc
   SuperchargedAttackID: 
   FinalTrumpSkillID: 
+  BehaviourIDs: []

@@ -20,6 +20,17 @@ public partial struct TurnEndSystem : ISystem
         {
             if (battleState.ValueRO.Phase != BattlePhase.TurnEnd)
                 continue;
+            
+            var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
+
+            eventBuffer.Add(new BattleEvent
+                {
+                    Type = BattleEventType.TurnEnded,
+                    Scope = BattleEventScope.Global,
+                    Source = battle,
+                    Target = Entity.Null,
+                    Payload = new EventPayload{}
+                });
 
             ecb.AddComponent<BattleTurnEndCompleteTag>(battle);
             Logging.System("[Battle] Ending turn.");

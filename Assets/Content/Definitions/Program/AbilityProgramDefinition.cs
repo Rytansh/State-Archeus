@@ -9,6 +9,8 @@ public class AbilityProgramDefinition : ScriptableObject
     public List<InstructionDefinition> Instructions;
 }
 
+
+
 [System.Serializable]
 public class InstructionDefinition
 {
@@ -16,6 +18,4 @@ public class InstructionDefinition
 
     public int A;
     public int B;
-
-    public float FloatValue;
 }

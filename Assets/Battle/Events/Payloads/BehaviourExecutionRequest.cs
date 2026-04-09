@@ -7,8 +7,10 @@ namespace DBUS.Battle.Components.Events
         public int BehaviourIndex;
         public int TriggerIndex;
         public int Priority;
-        public Entity Owner;
-        public BattleEvent SourceEvent;
         public int RegistrationIndex;
+
+        public Entity Owner;
+        public Entity Source;
+        public Entity Target;
     }
 }

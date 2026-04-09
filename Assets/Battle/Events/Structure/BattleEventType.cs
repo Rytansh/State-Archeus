@@ -32,3 +32,9 @@ public enum BattleEventPhase
     Resolution,
     PostResolution
 }
+public enum EventValueType
+{
+    DamageBase,
+    DamageFinal,
+    DamageMultiplier
+}

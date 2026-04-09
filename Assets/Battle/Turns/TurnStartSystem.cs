@@ -24,6 +24,16 @@ public partial struct TurnStartSystem : ISystem
 
             turnCounter.ValueRW.CurrentTurn++;
             Logging.System($"[Turn] Starting turn {turnCounter.ValueRW.CurrentTurn}.");
+            var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
+
+            eventBuffer.Add(new BattleEvent
+                {
+                    Type = BattleEventType.TurnStarted,
+                    Scope = BattleEventScope.Global,
+                    Source = battle,
+                    Target = Entity.Null,
+                    Payload = new EventPayload{}
+                });
 
             foreach (var (ownedBattle, remainingAP, maxAP, player)
                     in SystemAPI.Query<

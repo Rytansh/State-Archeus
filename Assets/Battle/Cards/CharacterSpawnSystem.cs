@@ -44,12 +44,18 @@ public partial struct CharacterSpawnSystem : ISystem
             }); 
             ecb.AddComponent(character, new CurrentHealth { Value = characterDef.CharacterBlobBaseStats.MaxHealth }); 
             
-            var buffer = ecb.AddBuffer<BehaviourReference>(character); 
+            var behaviourReferenceBuffer = ecb.AddBuffer<BehaviourReference>(character); 
+            var behaviourStateBuffer = ecb.AddBuffer<BehaviourRuntimeState>(character);
             for (int i = 0; i < characterDef.BehaviourIDs.Length; i++) 
             { 
                 uint behaviourID = characterDef.BehaviourIDs[i]; 
                 int behaviourIndex = lookup.BehaviourIDToIndex[behaviourID]; 
-                buffer.Add(new BehaviourReference { BehaviourIndex = behaviourIndex }); 
+                behaviourReferenceBuffer.Add(new BehaviourReference { BehaviourIndex = behaviourIndex });
+                var behaviourState = new BehaviourRuntimeState
+                {
+                    Memory = default
+                };
+                behaviourStateBuffer.Add(behaviourState);
             } 
 
             Logging.System("[Setup] Spawned character " + characterDef.ID + " with runtime ID " + runtimeID + " successfully. (Attack: " + characterDef.CharacterBlobBaseStats.Attack + ")");

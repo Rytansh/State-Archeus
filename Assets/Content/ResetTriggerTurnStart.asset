@@ -10,20 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 90bf8690acea5c94ab7279a17b329ec0, type: 3}
-  m_Name: TestAttack
+  m_Name: ResetTriggerTurnStart
   m_EditorClassIdentifier: 
-  ID: TestAttack
+  ID: ResetTriggerTurnStart
   Instructions:
   - Opcode: 0
-    A: 1073741824
-    B: 0
-  - Opcode: 0
-    A: 1073741824
-    B: 0
-  - Opcode: 8
     A: 0
     B: 0
-  - Opcode: 15
+  - Opcode: 4
     A: 0
     B: 0
   - Opcode: 19
