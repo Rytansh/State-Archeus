@@ -295,6 +295,10 @@ public partial struct BattleEventProcessingSystem : ISystem
                     entity = evt.Target;
                 }
                 break;
+            
+            case ConditionTarget.Source:
+                entity = evt.Source;
+                break;
 
             default:
                 entity = owner;

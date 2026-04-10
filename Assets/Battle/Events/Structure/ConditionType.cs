@@ -12,5 +12,6 @@ public enum ConditionType
 public enum ConditionTarget
 {
     Self,
-    Target
+    Target,
+    Source
 }
