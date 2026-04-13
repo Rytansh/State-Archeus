@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace DBUS.Battle.Components.Turns
+namespace Archeus.Battle.Components.Turns
 {
     public struct MaxActionPoints: IComponentData
     {

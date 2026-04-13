@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace DBUS.Battle.Components.Effects
+namespace Archeus.Battle.Components.Effects
 {
     public enum ReactiveEffectType
     {

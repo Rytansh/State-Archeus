@@ -1,6 +1,7 @@
-using UnityEngine;
-
-public struct CombatPayload
+namespace Archeus.Battle.Events.Payloads
 {
-    
+    public struct CombatPayload
+    {
+        
+    }
 }

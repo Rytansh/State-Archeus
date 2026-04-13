@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace DBUS.Battle.Components.Ownership
+namespace Archeus.Battle.Components.Ownership
 {
     public struct OwnedBattle : IComponentData
     {

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a77e5f87cf3a3c9418502da886ab3a47, type: 3}
+  m_Name: ReduceDamage20PercentText
+  m_EditorClassIdentifier: 
+  Source: "\rLoadState 0\nPushConst 1\nGreaterEqual\nJumpIfTrue end\n\nLoadState
+    1\nPushConst 3\nGreaterEqual\nJumpIfTrue end\n\nLoadState 0\nPushConst 1\nAdd\nStoreState
+    0\n\nLoadState 1\nPushConst 1\nAdd\nStoreState 1\n\nPushEventValue DamageBase\nPushConst
+    0.8\nMul\nModifyEventValue DamageBase\n\nend:\nEnd"
+  Output: {fileID: 11400000, guid: 0c20c832a6119ed4f8a1949eae422770, type: 2}
