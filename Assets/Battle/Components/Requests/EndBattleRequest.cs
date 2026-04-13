@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace DBUS.Battle.Components.Requests
+namespace Archeus.Battle.Components.Requests
 {
     public struct EndBattleRequest: IComponentData{}
 }

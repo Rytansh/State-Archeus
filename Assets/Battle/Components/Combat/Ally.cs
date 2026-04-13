@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-namespace DBUS.Battle.Components.Combat
+namespace Archeus.Battle.Components.Combat
 {
     public struct Ally: IComponentData{}
     // holds whether an entity is an ally.

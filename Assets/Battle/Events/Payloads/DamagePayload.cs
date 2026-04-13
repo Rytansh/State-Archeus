@@ -1,8 +1,9 @@
-using UnityEngine;
-
-public struct DamagePayload
+namespace Archeus.Battle.Events.Payloads
 {
-    public float AttackMultiplier;
-    public float BaseDamage;
-    public float FinalDamage;
+    public struct DamagePayload
+    {
+        public float AttackMultiplier;
+        public float BaseDamage;
+        public float FinalDamage;
+    }
 }

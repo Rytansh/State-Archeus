@@ -1,10 +1,11 @@
-using UnityEngine;
-
-public struct EventPayload
+namespace Archeus.Battle.Events.Payloads
 {
-    public FlowPayload Flow;
-    public ResourcePayload Resource;
-    public DamagePayload Damage;
-    public StatusPayload Status;
-    public CombatPayload Combat;
+    public struct EventPayload
+    {
+        public FlowPayload Flow;
+        public ResourcePayload Resource;
+        public DamagePayload Damage;
+        public StatusPayload Status;
+        public CombatPayload Combat;
+    }
 }
