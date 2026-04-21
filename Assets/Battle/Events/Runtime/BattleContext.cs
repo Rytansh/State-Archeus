@@ -10,7 +10,7 @@ namespace Archeus.Battle.Events.Runtime
         public Entity Battle;
         public DynamicBuffer<ChainedBattleEvent> ChainBuffer;
 
-        public ComponentLookup<CharacterStats> StatsLookup;
+        public ComponentLookup<ResolvedCharacterStats> StatsLookup;
         public ComponentLookup<CurrentHealth> HealthLookup;
         public BlobAssetReference<ContentBlobRegistry> BattleRegistryReference;
     }

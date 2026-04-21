@@ -9,6 +9,7 @@ namespace Archeus.Content.Registries
         public BlobArray<SkillDefinitionBlob> Skills;
         public BlobArray<BehaviourDefinitionBlob> Behaviours;
         public BlobArray<AbilityProgram> AbilityPrograms;
+        public BlobArray<EffectDefinitionBlob> Effects;
     }
 
     public struct ContentBlobRegistryComponent : IComponentData

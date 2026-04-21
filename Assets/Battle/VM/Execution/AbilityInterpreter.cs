@@ -221,7 +221,7 @@ namespace Archeus.Battle.VM.Execution
                                 Damage = new DamagePayload
                                 {
                                     AttackMultiplier = multiplier,
-                                    BaseDamage = stats.Attack * multiplier 
+                                    BaseDamage = stats.Attack
                                 }
                             }
                         });

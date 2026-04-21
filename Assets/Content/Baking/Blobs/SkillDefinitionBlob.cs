@@ -1,5 +1,6 @@
 using Unity.Entities;
 using Archeus.Content.Lookup;
+using Archeus.Game.Stats;
 
 namespace Archeus.Content.Blobs
 {
@@ -7,8 +8,8 @@ namespace Archeus.Content.Blobs
     {
         public uint ID;
         public uint GetID() => ID;
-        public byte Rarity;
-        public byte Speciality; 
+        public SkillRarity Rarity;
+        public Speciality Speciality; 
         public int Duration;
 
         public SkillBlobBaseStats SkillBlobBaseStats;

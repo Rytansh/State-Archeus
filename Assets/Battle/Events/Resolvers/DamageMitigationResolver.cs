@@ -1,30 +1,31 @@
+using System;
 using Unity.Entities;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Runtime;
 using Archeus.Battle.Components.Stats;
+
 namespace Archeus.Battle.Events.Resolvers
 {
-    public static class DamageRequestResolver
+    public static class DamageMitigationResolver
     {
         public static void Resolve(ref BattleContext ctx, BattleEvent evt)
         {
-            Entity attacker = evt.Source;
             Entity target = evt.Target;
 
-            if (!ctx.StatsLookup.HasComponent(target) || !ctx.StatsLookup.HasComponent(attacker)) return;    
+            if (!ctx.StatsLookup.HasComponent(target)) return;
 
-            var attackerStats = ctx.StatsLookup[attacker];
-            var targetStats = ctx.StatsLookup[target];
-            var targetHealth = ctx.HealthLookup[target];
+            float targetDefense = evt.Payload.Damage.Snapshot.TargetDefense;
+            
+            float damageAfterMitigation = Math.Max(1f, evt.Payload.Damage.FinalDamage - targetDefense);
 
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
                 Event = new BattleEvent
                 {
-                    Type = BattleEventType.DamageCalculated,
-                    Source = attacker,
+                    Type = BattleEventType.DamageResolved,
+                    Source = evt.Source,
                     Target = target,
                     Payload = new EventPayload
                     {
@@ -32,14 +33,8 @@ namespace Archeus.Battle.Events.Resolvers
                         {
                             AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
                             BaseDamage = evt.Payload.Damage.BaseDamage,
-                            FinalDamage = evt.Payload.Damage.BaseDamage,
-                            Snapshot = new DamageSnapshot
-                            {
-                                AttackerAttack = attackerStats.Attack,
-                                TargetDefense = targetStats.Defense,
-                                TargetCurrentHealth = targetHealth.Value,
-                                TargetMaxHealth = targetStats.MaxHealth
-                            }
+                            FinalDamage = damageAfterMitigation,
+                            Snapshot = evt.Payload.Damage.Snapshot
                         }
                     }
                 }

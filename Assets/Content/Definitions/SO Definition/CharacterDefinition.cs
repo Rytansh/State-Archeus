@@ -1,4 +1,4 @@
-using Archeus.Gameplay.Stats;
+using Archeus.Game.Stats;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,8 +8,7 @@ public class CharacterDefinition : ScriptableObject
     public string ID;   
     public string Name;  
     public CharacterRarity Rarity;           
-    public BattleType BattleType; 
-    public CharacterType CharacterType;      
+    public BattleType BattleType;   
     public Speciality Speciality;   
 
     public CharacterBaseStats CharacterBaseStats; 

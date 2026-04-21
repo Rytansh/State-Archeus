@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Source: "\rLoadState 0\nPushConst 1\nGreaterEqual\nJumpIfTrue end\n\nLoadState
     1\nPushConst 3\nGreaterEqual\nJumpIfTrue end\n\nLoadState 0\nPushConst 1\nAdd\nStoreState
-    0\n\nLoadState 1\nPushConst 1\nAdd\nStoreState 1\n\nPushEventValue DamageBase\nPushConst
-    0.8\nMul\nModifyEventValue DamageBase\n\nend:\nEnd"
+    0\n\nLoadState 1\nPushConst 1\nAdd\nStoreState 1\n\nPushEventValue DamageFinal\nPushConst
+    0.8\nMul\nModifyEventValue DamageFinal\n\nend:\nEnd"
   Output: {fileID: 11400000, guid: 0c20c832a6119ed4f8a1949eae422770, type: 2}

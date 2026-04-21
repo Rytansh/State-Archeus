@@ -27,6 +27,7 @@ namespace Archeus.Content.Lookup
             var characterMap = RegisterToLookupTable(ref registry.Characters);
             var skillMap = RegisterToLookupTable(ref registry.Skills);
             var behaviourMap = RegisterToLookupTable(ref registry.Behaviours);
+            var effectMap = RegisterToLookupTable(ref registry.Effects);
 
             var lookupEntity = state.EntityManager.CreateEntity(typeof(ContentLookupTables));
             state.EntityManager.AddComponentData(
@@ -35,7 +36,8 @@ namespace Archeus.Content.Lookup
                 {
                     CharacterIDToIndex = characterMap,
                     SkillIDToIndex = skillMap,
-                    BehaviourIDToIndex = behaviourMap
+                    BehaviourIDToIndex = behaviourMap,
+                    EffectIDToIndex = effectMap
                 }
             );
             Logging.Info(LogCategory.System, $"Lookup system initialised successfully.");

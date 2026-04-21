@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Archeus.Gameplay.Stats;
+using Archeus.Game.Stats;
 
 [CreateAssetMenu(fileName = "SkillDefinition", menuName = "Definition/Skill")]
 public class SkillDefinition : ScriptableObject

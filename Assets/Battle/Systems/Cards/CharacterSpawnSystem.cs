@@ -10,6 +10,7 @@ using Archeus.Content.Registries;
 using Archeus.Content.Blobs;
 using Archeus.Content.Lookup;
 using Archeus.Core.Debugging;
+using Archeus.Buffers.Effects;
 
 namespace Archeus.Battle.Systems.Cards
 {
@@ -71,6 +72,14 @@ namespace Archeus.Battle.Systems.Cards
                 Defense = characterDef.CharacterBlobBaseStats.Defense, 
                 MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth 
             }); 
+            ecb.AddBuffer<ActiveEffect>(character);
+            ecb.AddComponent(character, new ResolvedCharacterStats
+            { 
+                Attack = characterDef.CharacterBlobBaseStats.Attack, 
+                Defense = characterDef.CharacterBlobBaseStats.Defense, 
+                MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth 
+            }); 
+            ecb.AddComponent<StatsDirtyTag>(character);
             ecb.AddComponent(character, new CurrentHealth { Value = characterDef.CharacterBlobBaseStats.MaxHealth }); 
 
             DynamicBuffer<BehaviourReference> behaviourReferenceBuffer = ecb.AddBuffer<BehaviourReference>(character); 

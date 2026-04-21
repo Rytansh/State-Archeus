@@ -8,7 +8,6 @@ public static class CharacterDefinitionValidator
         ValidationTools.RequireNotNullOrEmpty(validator, definition.Name, "Name");
 
         ValidationTools.RequireEnumDefined(validator, definition.Rarity, "Rarity");
-        ValidationTools.RequireEnumDefined(validator, definition.CharacterType, "Character Type");
         ValidationTools.RequireEnumDefined(validator, definition.BattleType, "Battle Type");
         ValidationTools.RequireEnumDefined(validator, definition.Speciality, "Speciality");
         

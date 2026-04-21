@@ -46,7 +46,7 @@ namespace Archeus.Battle.VM.Execution
                     if (!ctx.HealthLookup.HasComponent(targetEntity)) return false;
 
                     CurrentHealth hp = ctx.HealthLookup[targetEntity];
-                    CharacterStats stats = ctx.StatsLookup[targetEntity];
+                    ResolvedCharacterStats stats = ctx.StatsLookup[targetEntity];
 
                     float percent = hp.Value / stats.MaxHealth * 100f;
                     return percent < condition.Value;
@@ -57,7 +57,7 @@ namespace Archeus.Battle.VM.Execution
                     if (!ctx.HealthLookup.HasComponent(targetEntity)) return false;
 
                     CurrentHealth hp = ctx.HealthLookup[targetEntity];
-                    CharacterStats stats = ctx.StatsLookup[targetEntity];
+                    ResolvedCharacterStats stats = ctx.StatsLookup[targetEntity];
 
                     float percent = hp.Value / stats.MaxHealth * 100f;
                     return percent > condition.Value;
@@ -79,12 +79,12 @@ namespace Archeus.Battle.VM.Execution
 
                 case ConditionType.DamageAbove:
                 {
-                    return tiedEvent.Payload.Damage.BaseDamage > condition.Value;
+                    return tiedEvent.Payload.Damage.FinalDamage > condition.Value;
                 }
 
                 case ConditionType.DamageBelow:
                 {
-                    return tiedEvent.Payload.Damage.BaseDamage < condition.Value;
+                    return tiedEvent.Payload.Damage.FinalDamage < condition.Value;
                 }
 
                 default:

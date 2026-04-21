@@ -8,7 +8,7 @@ namespace Archeus.Battle.VM.Execution
     public struct AbilityExecutionContext
     {
         public DynamicBuffer<ChainedBattleEvent> ChainedEventQueue;
-        public ComponentLookup<CharacterStats> CharacterStatsLookup;
+        public ComponentLookup<ResolvedCharacterStats> CharacterStatsLookup;
 
         public BlobAssetReference<ContentBlobRegistry> ContentRegistry;
         public DynamicBuffer<BehaviourRuntimeState> StateBuffer;

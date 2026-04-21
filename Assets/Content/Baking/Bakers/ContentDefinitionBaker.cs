@@ -14,6 +14,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         List<SkillDefinition> validSkillDefinitions = SkillDefinitionParser.FilterValidSkillDefinitions(authoring.SkillDefinitions);
         List<BehaviourDefinition> validBehaviourDefinitions = BehaviourDefinitionParser.FilterValidBehaviourDefinitions(authoring.BehaviourDefinitions);
         List<AbilityProgramDefinition> validAbilityProgramDefinitions = AbilityProgramDefinitionParser.FilterValidAbilityProgramDefinitions(authoring.AbilityProgramDefinitions);
+        List<EffectDefinition> validEffectDefinitions = EffectDefinitionParser.FilterValidEffectDefinitions(authoring.EffectDefinitions);
         Entity ContentRegistryEntity = GetEntity(TransformUsageFlags.None);
 
         var programIDToIndex = new Dictionary<uint, int>();
@@ -31,11 +32,13 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             BlobBuilderArray<SkillDefinitionBlob> skillsToBake = builder.Allocate(ref root.Skills, validSkillDefinitions.Count);
             BlobBuilderArray<BehaviourDefinitionBlob> behavioursToBake = builder.Allocate(ref root.Behaviours, validBehaviourDefinitions.Count);
             BlobBuilderArray<AbilityProgram> programsToBake = builder.Allocate(ref root.AbilityPrograms, validAbilityProgramDefinitions.Count);
+            BlobBuilderArray<EffectDefinitionBlob> effectsToBake = builder.Allocate(ref root.Effects, validEffectDefinitions.Count);
 
             BakeAllCharacters(validCharacterDefinitions, ref charactersToBake, builder);
             BakeAllSkills(validSkillDefinitions, ref skillsToBake, builder);
             BakeAllBehaviours(validBehaviourDefinitions, ref behavioursToBake, builder, programIDToIndex);
             BakeAllPrograms(validAbilityProgramDefinitions, ref programsToBake, builder);
+            BakeAllEffects(validEffectDefinitions, ref effectsToBake, builder);
 
             BlobAssetReference<ContentBlobRegistry> registryReference = builder.CreateBlobAssetReference<ContentBlobRegistry>(Allocator.Persistent);
             AddBlobAsset(ref registryReference, out Unity.Entities.Hash128 blobHash);
@@ -79,14 +82,24 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         }
     }
 
+    private static void BakeAllEffects(List<EffectDefinition> effectDefs, ref BlobBuilderArray<EffectDefinitionBlob> outputArray, BlobBuilder builder)
+    {
+        for (int i = 0; i < effectDefs.Count; i++)
+        {
+            WriteEffect(ref outputArray[i], effectDefs[i], ref builder);
+
+            Logging.Info(LogCategory.System,
+                "Baked effect " + effectDefs[i].ID + " successfully.");
+        }
+    }
+
     //########### Writers ###########//
     private static void WriteCharacter(ref CharacterDefinitionBlob blob, CharacterDefinition def, ref BlobBuilder builder)
     {
         blob.ID = StableHash32.HashFromString(def.ID);
-        blob.Rarity = (byte)def.Rarity;
-        blob.BattleType = (byte)def.BattleType;
-        blob.CharacterType = (byte)def.CharacterType;
-        blob.Speciality = (byte)def.Speciality;
+        blob.Rarity = def.Rarity;
+        blob.BattleType = def.BattleType;
+        blob.Speciality = def.Speciality;
 
         ref var stats = ref blob.CharacterBlobBaseStats;
 
@@ -116,8 +129,8 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
     private static void WriteSkill(ref SkillDefinitionBlob blob, SkillDefinition def, ref BlobBuilder builder)
     {
         blob.ID = StableHash32.HashFromString(def.ID);
-        blob.Rarity = (byte)def.Rarity;
-        blob.Speciality = (byte)def.Speciality;
+        blob.Rarity = def.Rarity;
+        blob.Speciality = def.Speciality;
 
         blob.Duration = def.Duration;
 
@@ -183,6 +196,27 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
                 Opcode = defInstr.Opcode,
                 A = a,
                 B = b
+            };
+        }
+    }
+
+    private static void WriteEffect(ref EffectDefinitionBlob blob, EffectDefinition def, ref BlobBuilder builder)
+    {
+        blob.EffectID = StableHash32.HashFromString(def.ID);
+        blob.Duration = def.Duration;
+        blob.StackingType = def.StackingType;
+
+        var modifiers = builder.Allocate(ref blob.Modifiers, def.Modifiers.Count);
+
+        for (int i = 0; i < def.Modifiers.Count; i++)
+        {
+            var mod = def.Modifiers[i];
+
+            modifiers[i] = new StatModifierBlob
+            {
+                StatType = mod.StatType,
+                ModifierType = mod.ModifierType,
+                Value = mod.Value
             };
         }
     }

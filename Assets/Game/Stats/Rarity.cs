@@ -1,4 +1,4 @@
-namespace Archeus.Gameplay.Stats
+namespace Archeus.Game.Stats
 {
     public enum CharacterRarity
     {

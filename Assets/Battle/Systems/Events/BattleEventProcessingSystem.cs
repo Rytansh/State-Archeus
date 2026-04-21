@@ -18,13 +18,13 @@ namespace Archeus.Battle.Systems.Events
     public partial struct BattleEventProcessingSystem : ISystem
     {
         private const int MAX_EXECUTIONS = 10000;
-        private ComponentLookup<CharacterStats> characterStatsLookup;
+        private ComponentLookup<ResolvedCharacterStats> characterStatsLookup;
         private ComponentLookup<CurrentHealth> characterHPLookup;
         private BufferLookup<BehaviourRuntimeState> behaviourStateLookup;
 
         public void OnCreate(ref SystemState state)
         {
-            characterStatsLookup = state.GetComponentLookup<CharacterStats>(true);
+            characterStatsLookup = state.GetComponentLookup<ResolvedCharacterStats>(true);
             characterHPLookup = state.GetComponentLookup<CurrentHealth>();
             behaviourStateLookup = state.GetBufferLookup<BehaviourRuntimeState>();
         }
