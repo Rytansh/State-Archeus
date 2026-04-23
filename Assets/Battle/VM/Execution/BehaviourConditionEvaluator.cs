@@ -79,12 +79,12 @@ namespace Archeus.Battle.VM.Execution
 
                 case ConditionType.DamageAbove:
                 {
-                    return tiedEvent.Payload.Damage.BaseDamage > condition.Value;
+                    return tiedEvent.Payload.Damage.FinalDamage > condition.Value;
                 }
 
                 case ConditionType.DamageBelow:
                 {
-                    return tiedEvent.Payload.Damage.BaseDamage < condition.Value;
+                    return tiedEvent.Payload.Damage.FinalDamage < condition.Value;
                 }
 
                 default:

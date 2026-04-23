@@ -21,7 +21,7 @@ MonoBehaviour:
   CharacterBaseStats:
     MaxHealth: 1000
     Attack: 30
-    Defense: 0
+    Defense: 10
     CritDMG: 3
     CritRATE: 45
     Reactivity: 534

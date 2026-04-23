@@ -19,6 +19,8 @@ namespace Archeus.Battle.Events.Definitions
 
         //(Damage Related Events)
         DamageRequested,
+        DamageCalculated,
+        DamageMitigated,
         DamageResolved,
 
         //(Status Related Events)

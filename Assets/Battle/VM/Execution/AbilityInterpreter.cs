@@ -87,8 +87,6 @@ namespace Archeus.Battle.VM.Execution
                         }
 
                         state.Memory[index] = value;
-
-                        // 🔥 THIS is the missing piece
                         context.StateBuffer[context.StateIndex] = state;
 
                         break;
@@ -208,7 +206,6 @@ namespace Archeus.Battle.VM.Execution
                     case AbilityOpcode.DealDamage:
                     {
                         float multiplier = Pop(ref frame);
-                        var stats = context.CharacterStatsLookup[frame.Source];
 
                         EmitEvent(ref context, new BattleEvent
                         {
@@ -220,8 +217,7 @@ namespace Archeus.Battle.VM.Execution
                             {
                                 Damage = new DamagePayload
                                 {
-                                    AttackMultiplier = multiplier,
-                                    BaseDamage = stats.Attack * multiplier 
+                                    AttackMultiplier = multiplier
                                 }
                             }
                         });

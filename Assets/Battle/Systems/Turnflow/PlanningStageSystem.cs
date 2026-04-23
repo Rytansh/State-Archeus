@@ -75,6 +75,7 @@ namespace Archeus.Battle.Systems.Turnflow
                         .WithEntityAccess())
             {
                 var player = request.ValueRO.Player;
+                Logging.Info(LogCategory.Testing, "reached");
 
                 if (!SystemAPI.HasComponent<RemainingActionPoints>(player) || !TryPlanningBattle(ref state, player, out var battle))
                 {

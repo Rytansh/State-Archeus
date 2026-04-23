@@ -19,7 +19,7 @@ MonoBehaviour:
     VMProgramID: TestAttack
     Priority: 0
     Conditions: []
-  - EventType: 9
+  - EventType: 11
     Phase: 0
     VMProgramID: ReduceDamage20Percent
     Priority: 0

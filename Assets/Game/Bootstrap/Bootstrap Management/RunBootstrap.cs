@@ -28,7 +28,6 @@ namespace Archeus.Game.Bootstrap
 
             try
             {
-                Logging.DisableCategory(LogCategory.Testing);
                 bootstrapEntry.Initialise();
                 RootContext = bootstrapEntry.getRootContext();
 
