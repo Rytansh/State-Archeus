@@ -22,6 +22,12 @@ namespace Archeus.Battle.Events.Resolvers
                 case BattleEventType.DamageResolved:
                     DamageResolvedResolver.Resolve(ref context, evt);
                     break;
+                case BattleEventType.EffectApplicationRequested:
+                    EffectApplicationRequestedResolver.Resolve(ref context, evt);
+                    break;
+                case BattleEventType.EffectApplicationResolved:
+                    EffectApplicationResolvedResolver.Resolve(ref context, evt);
+                    break;
                 default:
                     return;
             }

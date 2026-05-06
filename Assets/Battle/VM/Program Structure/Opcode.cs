@@ -22,6 +22,7 @@ namespace Archeus.Battle.VM.Programs
         LessEqual,
 
         DealDamage,
+        ApplyEffect,
 
         Jump,
         JumpIfFalse,

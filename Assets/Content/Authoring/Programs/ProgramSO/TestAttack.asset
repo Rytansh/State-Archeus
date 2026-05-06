@@ -13,19 +13,12 @@ MonoBehaviour:
   m_Name: TestAttack
   m_EditorClassIdentifier: 
   ID: TestAttack
-  Instructions:
-  - Opcode: 0
-    A: 1073741824
-    B: 0
-  - Opcode: 0
-    A: 1073741824
-    B: 0
-  - Opcode: 8
-    A: 0
-    B: 0
-  - Opcode: 15
-    A: 0
-    B: 0
-  - Opcode: 19
-    A: 0
-    B: 0
+  Source: 'PushConst 2
+
+    PushConst 2
+
+    Mul
+
+    DealDamage
+
+    End'

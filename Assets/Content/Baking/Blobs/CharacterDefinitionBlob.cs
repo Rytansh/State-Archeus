@@ -16,7 +16,7 @@ namespace Archeus.Content.Blobs
         public uint NormalAttackID;   
         public uint SuperchargedAttackID;
         public uint FinalTrumpSkillID;
-        public BlobArray<uint> BehaviourIDs;
+        public BlobArray<int> BehaviourIndices;
     }
 
     public struct CharacterBlobBaseStats

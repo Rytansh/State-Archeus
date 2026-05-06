@@ -10,6 +10,7 @@ using Archeus.Content.Registries;
 using Archeus.Content.Blobs;
 using Archeus.Content.Lookup;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Buffers.Events;
 
 namespace Archeus.Battle.Systems.Cards
 {
@@ -75,10 +76,11 @@ namespace Archeus.Battle.Systems.Cards
 
             DynamicBuffer<BehaviourReference> behaviourReferenceBuffer = ecb.AddBuffer<BehaviourReference>(character); 
             DynamicBuffer<BehaviourRuntimeState> behaviourStateBuffer = ecb.AddBuffer<BehaviourRuntimeState>(character);
-            for (int i = 0; i < characterDef.BehaviourIDs.Length; i++) 
+            DynamicBuffer<ActiveEffect> activeEffectsBuffer = ecb.AddBuffer<ActiveEffect>(character);
+            
+            for (int i = 0; i < characterDef.BehaviourIndices.Length; i++) 
             { 
-                uint behaviourID = characterDef.BehaviourIDs[i]; 
-                int behaviourIndex = lookup.BehaviourIDToIndex[behaviourID]; 
+                int behaviourIndex = characterDef.BehaviourIndices[i]; 
                 behaviourReferenceBuffer.Add(new BehaviourReference { BehaviourIndex = behaviourIndex });
                 BehaviourRuntimeState behaviourState = new BehaviourRuntimeState{ Memory = default };
                 behaviourStateBuffer.Add(behaviourState);

@@ -223,6 +223,33 @@ namespace Archeus.Battle.VM.Execution
                         });
                         break;
                     }
+
+                    case AbilityOpcode.ApplyEffect:
+                    {
+                        int effectIndex = instruction.A;
+
+                        float strength = Pop(ref frame);
+                        int duration = (int)Pop(ref frame);
+
+                        EmitEvent(ref context, new BattleEvent
+                        {
+                            Type = BattleEventType.EffectApplicationRequested,
+                            Scope = BattleEventScope.Targeted,
+                            Source = frame.Source,
+                            Target = frame.Target,
+                            Payload = new EventPayload
+                            {
+                                Effect = new EffectPayload
+                                {
+                                    EffectIndex = effectIndex,
+                                    Strength = strength,
+                                    Duration = duration
+                                }
+                            }
+                        });
+
+                        break;
+                    }
                     
                     // VM FLOW OPCODES //
                     case AbilityOpcode.Jump:

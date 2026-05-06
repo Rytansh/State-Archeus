@@ -21,12 +21,14 @@ namespace Archeus.Battle.Systems.Events
         private ComponentLookup<CharacterStats> characterStatsLookup;
         private ComponentLookup<CurrentHealth> characterHPLookup;
         private BufferLookup<BehaviourRuntimeState> behaviourStateLookup;
+        private BufferLookup<ActiveEffect> activeEffectsLookup;
 
         public void OnCreate(ref SystemState state)
         {
             characterStatsLookup = state.GetComponentLookup<CharacterStats>(true);
             characterHPLookup = state.GetComponentLookup<CurrentHealth>();
             behaviourStateLookup = state.GetBufferLookup<BehaviourRuntimeState>();
+            activeEffectsLookup = state.GetBufferLookup<ActiveEffect>();
         }
 
         public void OnUpdate(ref SystemState state)
@@ -35,6 +37,7 @@ namespace Archeus.Battle.Systems.Events
             characterStatsLookup.Update(ref state);
             characterHPLookup.Update(ref state);
             behaviourStateLookup.Update(ref state);
+            activeEffectsLookup.Update(ref state);
 
             foreach (var (mainEventQueue, chainedEventQueue, executionRequestQueue, battle) in SystemAPI.Query<DynamicBuffer<BattleEvent>, DynamicBuffer<ChainedBattleEvent>, DynamicBuffer<BehaviourExecutionRequest>>().WithAll<BattleTag>().WithEntityAccess())
             {
@@ -50,6 +53,7 @@ namespace Archeus.Battle.Systems.Events
                     ChainBuffer = chainedEventQueue,
                     StatsLookup = characterStatsLookup,
                     HealthLookup = characterHPLookup,
+                    EffectLookup = activeEffectsLookup,
                     BattleRegistryReference = battleRegistryReference
                 };
 

@@ -4,6 +4,8 @@ using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Events.Runtime;
 using Archeus.Core.Debugging;
 using Archeus.Battle.Components.Stats;
+using Archeus.Battle.Events.Definitions;
+using Archeus.Battle.Events.Payloads;
 
 namespace Archeus.Battle.Events.Resolvers
 {
@@ -29,6 +31,25 @@ namespace Archeus.Battle.Events.Resolvers
 
             Logging.Info(LogCategory.Combat, $"[Health Update] Entity {target.Index}: " + $"{oldHp} -> {hp.Value} (-{damageToApply}) | " +$"Current HP: {hpPercent:F1}%");
 
+            ctx.ChainBuffer.Add(new ChainedBattleEvent
+            {
+                Event = new BattleEvent
+                {
+                    Type = BattleEventType.DamageApplied,
+                    Scope = evt.Scope,
+                    Source = evt.Source,
+                    Target = target,
+                    Payload = new EventPayload
+                    {
+                        Damage = new DamagePayload
+                        {
+                            AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
+                            BaseDamage = evt.Payload.Damage.BaseDamage,
+                            FinalDamage = evt.Payload.Damage.FinalDamage
+                        }
+                    }
+                }
+            });
         }
     }
 }

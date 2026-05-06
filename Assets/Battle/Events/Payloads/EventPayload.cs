@@ -7,5 +7,6 @@ namespace Archeus.Battle.Events.Payloads
         public DamagePayload Damage;
         public StatusPayload Status;
         public CombatPayload Combat;
+        public EffectPayload Effect;
     }
 }

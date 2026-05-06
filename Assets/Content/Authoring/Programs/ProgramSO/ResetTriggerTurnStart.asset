@@ -13,13 +13,8 @@ MonoBehaviour:
   m_Name: ResetTriggerTurnStart
   m_EditorClassIdentifier: 
   ID: ResetTriggerTurnStart
-  Instructions:
-  - Opcode: 0
-    A: 0
-    B: 0
-  - Opcode: 4
-    A: 0
-    B: 0
-  - Opcode: 19
-    A: 0
-    B: 0
+  Source: 'PushConst 0
+
+    StoreState 0
+
+    End'

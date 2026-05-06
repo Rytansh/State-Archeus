@@ -5,8 +5,16 @@ using Archeus.Battle.Events.Definitions;
 
 public static class AbilityProgramCompiler
 {
-    public static List<InstructionDefinition> Compile(string source)
+    public static List<InstructionDefinition> Compile(string source, Dictionary<uint, int> effectMap)
     {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return new List<InstructionDefinition>
+            {
+                new InstructionDefinition{ Opcode = AbilityOpcode.End }
+            };
+        }
+        
         var lines = source.Split('\n');
 
         Dictionary<string, int> labels = new();
@@ -47,7 +55,7 @@ public static class AbilityProgramCompiler
 
             if (parts.Length > 1)
             {
-                A = ParseArgument(opcode, parts[1], labels);
+                A = ParseArgument(opcode, parts[1], labels, effectMap);
             }
             instructions.Add(new InstructionDefinition
             {
@@ -59,7 +67,7 @@ public static class AbilityProgramCompiler
         return instructions;
     }
 
-    private static int ParseArgument(AbilityOpcode opcode, string arg, Dictionary<string, int> labels)
+    private static int ParseArgument(AbilityOpcode opcode, string arg, Dictionary<string, int> labels, Dictionary<uint, int> effectMap)
     {
         // labels always win
         if (labels.ContainsKey(arg))
@@ -84,6 +92,18 @@ public static class AbilityProgramCompiler
                     throw new Exception($"Invalid EventValueType: {arg}");
 
                 return (int)ev;
+            }
+
+            case AbilityOpcode.ApplyEffect:
+            {
+                uint effectID = StableHash32.HashFromString(arg);
+
+                if (!effectMap.TryGetValue(effectID, out int effectIndex))
+                {
+                    throw new Exception($"Effect not found: {arg}");
+                }
+
+                return effectIndex;
             }
 
             // 🔵 INT OPCODES

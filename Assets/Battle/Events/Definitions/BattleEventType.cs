@@ -22,10 +22,12 @@ namespace Archeus.Battle.Events.Definitions
         DamageCalculated,
         DamageMitigated,
         DamageResolved,
+        DamageApplied,
 
         //(Status Related Events)
-        BuffApplied,
-        BuffRemoved,
+        EffectApplicationRequested,
+        EffectApplicationResolved,
+        EffectApplied,
         EntityKilled,
         ReactionTriggered
     }

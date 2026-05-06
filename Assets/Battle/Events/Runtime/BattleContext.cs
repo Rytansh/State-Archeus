@@ -12,6 +12,7 @@ namespace Archeus.Battle.Events.Runtime
 
         public ComponentLookup<CharacterStats> StatsLookup;
         public ComponentLookup<CurrentHealth> HealthLookup;
+        public BufferLookup<ActiveEffect> EffectLookup;
         public BlobAssetReference<ContentBlobRegistry> BattleRegistryReference;
     }
 }
