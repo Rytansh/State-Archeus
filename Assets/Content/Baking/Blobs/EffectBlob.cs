@@ -8,6 +8,7 @@ namespace Archeus.Content.Blobs
     {
         public uint ID;
         public uint GetID() => ID;
+        public BlobArray<StatModifier> StatModifiers;
         public BlobArray<int> BehaviourIndices;
     }
 }

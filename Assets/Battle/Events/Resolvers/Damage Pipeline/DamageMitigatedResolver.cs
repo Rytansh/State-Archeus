@@ -4,6 +4,7 @@ using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Runtime;
+using Archeus.Battle.Stats;
 using Unity.Entities;
 
 namespace Archeus.Battle.Events.Resolvers
@@ -17,8 +18,9 @@ namespace Archeus.Battle.Events.Resolvers
 
             float finalDamageToTarget = evt.Payload.Damage.FinalDamage;
 
+            float finalDefense = StatResolver.Resolve(target, StatType.Defense, ref ctx);
             //apply damage reduction, modifiers etc all to finalDamageToTarget.
-            finalDamageToTarget -= ctx.StatsLookup[target].Defense;
+            finalDamageToTarget = Math.Max(1f, finalDamageToTarget - finalDefense);
             
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {

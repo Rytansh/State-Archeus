@@ -4,6 +4,7 @@ using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Requests;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Components.Ownership;
 
 namespace Archeus.Battle.Systems.Setup
 {
@@ -28,6 +29,7 @@ namespace Archeus.Battle.Systems.Setup
                 ecb.AddComponent(req1, new SpawnCharacterRequest
                 {
                     Battle = battle,
+                    Side = BattleSide.Ally,
                     Slot = 1,
                     CharacterID = StableHash32.HashFromString("C1")
                 });
@@ -37,8 +39,19 @@ namespace Archeus.Battle.Systems.Setup
                 ecb.AddComponent(req2, new SpawnCharacterRequest
                 {
                     Battle = battle,
+                    Side = BattleSide.Enemy,
                     Slot = 2,
                     CharacterID = StableHash32.HashFromString("C2")
+                });
+
+                Entity req3 = ecb.CreateEntity();
+
+                ecb.AddComponent(req3, new SpawnCharacterRequest
+                {
+                    Battle = battle,
+                    Side = BattleSide.Enemy,
+                    Slot = 3,
+                    CharacterID = StableHash32.HashFromString("C1")
                 });
 
                 ecb.AddComponent<BattleSpawnRequestsIssuedTag>(battle);

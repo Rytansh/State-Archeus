@@ -14,6 +14,10 @@ namespace Archeus.Battle.VM.Execution
     {
         public static void CollectFromEntity(Entity entity, DynamicBuffer<BehaviourReference> behaviours, ref BattleContext ctx, in BattleEvent evt, BattleEventPhase phase, ref NativeList<BehaviourExecutionRequest> results)
         {
+            if (evt.Scope == BattleEventScope.Targeted && entity != evt.Source && entity != evt.Target)
+            {
+                return;
+            }
             ref ContentBlobRegistry registry = ref ctx.BattleRegistryReference.Value;
 
             for (int i = 0; i < behaviours.Length; i++)
@@ -32,6 +36,9 @@ namespace Archeus.Battle.VM.Execution
                 ref BehaviourTriggerBlob trigger = ref behaviour.Triggers[triggerIndex];
 
                 if (!IsMatchingTrigger(ref trigger, evt, phase))
+                    continue;
+                
+                if (!MatchesOwnerType(entity, trigger.OwnerType, evt))
                     continue;
 
                 if (!BehaviourConditionEvaluator.Evaluate(entity, evt, ref ctx, ref trigger))
@@ -52,5 +59,26 @@ namespace Archeus.Battle.VM.Execution
         }
 
         private static bool IsMatchingTrigger(ref BehaviourTriggerBlob trigger, in BattleEvent evt, BattleEventPhase phase) { return trigger.EventType == evt.Type && trigger.Phase == phase; }
+
+        private static bool MatchesOwnerType(
+    Entity owner,
+    TriggerOwnerType ownerType,
+    in BattleEvent evt)
+{
+    switch (ownerType)
+    {
+        case TriggerOwnerType.Source:
+            return owner == evt.Source;
+
+        case TriggerOwnerType.Target:
+            return owner == evt.Target;
+
+        case TriggerOwnerType.Any:
+            return true;
+
+        default:
+            return false;
+    }
+}
     }
 }

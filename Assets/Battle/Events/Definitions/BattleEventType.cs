@@ -19,15 +19,21 @@ namespace Archeus.Battle.Events.Definitions
 
         //(Damage Related Events)
         DamageRequested,
+        DamageConfirmed,
         DamageCalculated,
         DamageMitigated,
         DamageResolved,
         DamageApplied,
 
-        //(Status Related Events)
+        //(Effect Related Events)
+
         EffectApplicationRequested,
         EffectApplicationResolved,
         EffectApplied,
+        EffectRemoved,
+        EffectExpired,
+
+        //(Status Related Events)
         EntityKilled,
         ReactionTriggered
     }

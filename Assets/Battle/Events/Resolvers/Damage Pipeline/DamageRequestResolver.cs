@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Runtime;
+using Archeus.Core.Debugging;
 
 namespace Archeus.Battle.Events.Resolvers
 {
@@ -14,13 +16,12 @@ namespace Archeus.Battle.Events.Resolvers
 
             if (!ctx.StatsLookup.HasComponent(target) || !ctx.StatsLookup.HasComponent(attacker)) return;
             if (!ctx.HealthLookup.HasComponent(target) || !ctx.HealthLookup.HasComponent(attacker)) return;
-            float targetAttack = ctx.StatsLookup[attacker].Attack;
 
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
                 Event = new BattleEvent
                 {
-                    Type = BattleEventType.DamageCalculated,
+                    Type = BattleEventType.DamageConfirmed,
                     Scope = evt.Scope,
                     Source = attacker,
                     Target = target,
@@ -29,8 +30,6 @@ namespace Archeus.Battle.Events.Resolvers
                         Damage = new DamagePayload
                         {
                             AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
-                            BaseDamage = targetAttack,
-                            FinalDamage = targetAttack
                         }
                     }
                 }

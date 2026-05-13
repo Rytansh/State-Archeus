@@ -4,6 +4,7 @@ using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Runtime;
+using Archeus.Battle.Stats;
 using Unity.Entities;
 
 namespace Archeus.Battle.Events.Resolvers
@@ -15,10 +16,10 @@ namespace Archeus.Battle.Events.Resolvers
             Entity attacker = evt.Source;
             Entity target = evt.Target;
 
-            float inflictedDamage = evt.Payload.Damage.FinalDamage;
+            float finalDamage = evt.Payload.Damage.FinalDamage;
 
             //apply multipliers, modifiers, etc all to inflictedDamage.
-            inflictedDamage *= evt.Payload.Damage.AttackMultiplier;
+            finalDamage *= evt.Payload.Damage.AttackMultiplier;
             
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
@@ -34,7 +35,7 @@ namespace Archeus.Battle.Events.Resolvers
                         {
                             AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
                             BaseDamage = evt.Payload.Damage.BaseDamage,
-                            FinalDamage = inflictedDamage
+                            FinalDamage = finalDamage
                         }
                     }
                 }

@@ -13,21 +13,24 @@ namespace Archeus.Battle.Events.Resolvers
         {
             //validate effect application and apply mutations
 
-            var target = evt.Target;
+            Entity target = evt.Target;
 
             if (!ctx.EffectLookup.HasBuffer(target))
                 return;
 
             DynamicBuffer<ActiveEffect> activeEffects = ctx.EffectLookup[target];
+            ref var registry = ref ctx.BattleRegistryReference.Value;
+            ref var effectDef = ref registry.Effects[evt.Payload.Effect.EffectIndex];
 
             activeEffects.Add(new ActiveEffect
             {
                 EffectIndex = evt.Payload.Effect.EffectIndex,
                 Strength = evt.Payload.Effect.Strength,
-                RemainingDuration = evt.Payload.Effect.Duration
+                RemainingDuration = evt.Payload.Effect.Duration,
+                IsPermanent = evt.Payload.Effect.IsPermanent
             });
 
-            Logging.Info(LogCategory.Testing, $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% for {evt.Payload.Effect.Duration} turns.");
+            Logging.Info(LogCategory.Testing, $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% for {evt.Payload.Effect.Duration} turns. This effect has {effectDef.StatModifiers.Length} stat modifiers.");
 
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
@@ -43,7 +46,8 @@ namespace Archeus.Battle.Events.Resolvers
                         {
                             EffectIndex = evt.Payload.Effect.EffectIndex,
                             Strength = evt.Payload.Effect.Strength,
-                            Duration = evt.Payload.Effect.Duration
+                            Duration = evt.Payload.Effect.Duration,
+                            IsPermanent = evt.Payload.Effect.IsPermanent
                         }
                     }
                 }

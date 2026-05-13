@@ -37,7 +37,23 @@ namespace Archeus.Battle.Systems.Turnflow
             {
                 var player = request.ValueRO.Player;
 
-                if (!SystemAPI.HasComponent<PlayerHand>(player) || !SystemAPI.HasComponent<RemainingActionPoints>(player) || !TryPlanningBattle(ref state, player, out var battle))
+                if (!SystemAPI.HasComponent<PlayerHand>(player) || !SystemAPI.HasComponent<RemainingActionPoints>(player) || !SystemAPI.HasComponent<SelectedTarget>(player) || !SystemAPI.HasComponent<SelectedCharacter>(player) || !TryPlanningBattle(ref state, player, out var battle))
+                {
+                    ecb.DestroyEntity(requestEntity);
+                    continue;
+                }
+
+                SelectedTarget selectedTarget = SystemAPI.GetComponent<SelectedTarget>(player);
+
+                if (selectedTarget.Value == Entity.Null)
+                {
+                    ecb.DestroyEntity(requestEntity);
+                    continue;
+                }
+
+                SelectedCharacter selectedCharacter = SystemAPI.GetComponent<SelectedCharacter>(player);
+
+                if (selectedCharacter.Value == Entity.Null)
                 {
                     ecb.DestroyEntity(requestEntity);
                     continue;
@@ -45,24 +61,21 @@ namespace Archeus.Battle.Systems.Turnflow
 
                 var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
 
-                foreach (var (stats, entity) in SystemAPI.Query<CharacterStats>().WithEntityAccess())
+                eventBuffer.Add(new BattleEvent
                 {
-                    eventBuffer.Add(new BattleEvent
+                    Type = BattleEventType.TestEvent,
+                    Scope = BattleEventScope.Targeted,
+                    Source = selectedCharacter.Value,
+                    Target = selectedTarget.Value,
+                    Payload = new EventPayload
                     {
-                        Type = BattleEventType.TestEvent,
-                        Scope = BattleEventScope.Targeted,
-                        Source = entity,
-                        Target = entity,
-                        Payload = new EventPayload
+                        Damage = new DamagePayload
                         {
-                            Damage = new DamagePayload
-                            {
-                                AttackMultiplier = 1.0f
-                            }
+                            AttackMultiplier = 1.0f
                         }
-                    });
-                    break;
-                }
+                    }
+                });
+
 
                 ecb.DestroyEntity(requestEntity);
             }

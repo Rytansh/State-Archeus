@@ -6,7 +6,16 @@ using UnityEngine;
 public class EffectDefinition : ScriptableObject
 {
     public string ID;   
+
+    public List<StatModifierDefinition> StatModifiers;
     public List<string> BehaviourIDs;
+}
+
+[System.Serializable]
+public struct StatModifierDefinition
+{
+    public StatType StatType;
+    public ModifierOperation ModifierType;
 }
 
 

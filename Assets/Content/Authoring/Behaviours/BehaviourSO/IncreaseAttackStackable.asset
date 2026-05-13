@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: IncreaseAttackBelow70Percent
   Triggers:
-  - EventType: 13
+  - EventType: 14
     Phase: 0
+    OwnerType: 2
     VMProgramID: IncreaseAttack20Percent
     Priority: 0
     Conditions:
     - Type: 0
-      Target: 1
+      Target: 0
       Value: 70

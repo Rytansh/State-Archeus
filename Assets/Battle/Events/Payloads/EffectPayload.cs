@@ -4,6 +4,7 @@ namespace Archeus.Battle.Events.Payloads
     {
         public int EffectIndex;
         public float Strength;
+        public bool IsPermanent;
         public int Duration;
     }
 }

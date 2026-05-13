@@ -15,6 +15,7 @@ namespace Archeus.Content.Blobs
     {
         public BattleEventType EventType;
         public BattleEventPhase Phase;
+        public TriggerOwnerType OwnerType;
         public int VMProgramIndex;
         public BlobArray<EventConditionBlob> Conditions;
         public int Priority;

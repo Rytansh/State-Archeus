@@ -6,6 +6,7 @@ using Archeus.Core.Debugging;
 using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Stats;
 
 namespace Archeus.Battle.Events.Resolvers
 {
@@ -24,10 +25,8 @@ namespace Archeus.Battle.Events.Resolvers
             hp.Value = Math.Max(0f, hp.Value - damageToApply);
             ctx.HealthLookup[target] = hp;
 
-            // Get MaxHP for percentage tracking (assuming you have a MaxHP component or stat)
-            // If MaxHP is in stats:
-            CharacterStats stats = ctx.StatsLookup[target];
-            float hpPercent = hp.Value / stats.MaxHealth * 100f;
+            float maxHealth = StatResolver.Resolve(target, StatType.MaxHealth, ref ctx);
+            float hpPercent = hp.Value / maxHealth * 100f;
 
             Logging.Info(LogCategory.Combat, $"[Health Update] Entity {target.Index}: " + $"{oldHp} -> {hp.Value} (-{damageToApply}) | " +$"Current HP: {hpPercent:F1}%");
 

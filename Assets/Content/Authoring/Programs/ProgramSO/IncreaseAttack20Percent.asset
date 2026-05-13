@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: IncreaseAttack20Percent
   m_EditorClassIdentifier: 
   ID: IncreaseAttack20Percent
-  Source: 'PushConst 2
+  Source: 'PushConst -1
 
     PushConst 20
 

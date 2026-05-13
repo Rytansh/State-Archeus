@@ -228,8 +228,12 @@ namespace Archeus.Battle.VM.Execution
                     {
                         int effectIndex = instruction.A;
 
+                        bool isPermanent = false;
+                        
                         float strength = Pop(ref frame);
                         int duration = (int)Pop(ref frame);
+
+                        if (duration == -1) {isPermanent = true;}
 
                         EmitEvent(ref context, new BattleEvent
                         {
@@ -243,7 +247,8 @@ namespace Archeus.Battle.VM.Execution
                                 {
                                     EffectIndex = effectIndex,
                                     Strength = strength,
-                                    Duration = duration
+                                    Duration = duration,
+                                    IsPermanent = isPermanent
                                 }
                             }
                         });

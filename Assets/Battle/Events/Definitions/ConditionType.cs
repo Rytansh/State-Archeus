@@ -15,4 +15,12 @@ namespace Archeus.Battle.Events.Definitions
         Target,
         Source
     }
+
+    public enum TriggerOwnerType
+    {
+        Any,
+        Source,
+        Target
+    }
+
 }

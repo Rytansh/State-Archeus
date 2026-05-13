@@ -198,6 +198,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             ref var blobListener = ref triggers[i]; 
             blobListener.EventType = trigger.EventType; 
             blobListener.Phase = trigger.Phase;
+            blobListener.OwnerType = trigger.OwnerType;
             uint programID = StableHash32.HashFromString(trigger.VMProgramID);
             if (!programMap.TryGetValue(programID, out int programIndex))
             {
@@ -245,6 +246,20 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
     private static void WriteEffect(ref EffectBlob blob, EffectDefinition def, ref BlobBuilder builder, Dictionary<uint, int> behaviourMap)
     {
         blob.ID = StableHash32.HashFromString(def.ID);
+
+        var modifiers = builder.Allocate(ref blob.StatModifiers, def.StatModifiers.Count);
+
+        for (int i = 0; i < def.StatModifiers.Count; i++)
+        {
+            var defModifier = def.StatModifiers[i];
+
+            modifiers[i] = new StatModifier
+            {
+                StatType = defModifier.StatType,
+                ModifierType = defModifier.ModifierType
+            };
+        }
+
 
         var behaviourIndices = builder.Allocate(ref blob.BehaviourIndices, def.BehaviourIDs.Count);
 

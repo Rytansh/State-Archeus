@@ -9,6 +9,7 @@ using Archeus.Battle.Buffers.VM;
 using Archeus.Content.Registries;
 using Archeus.Game.Bootstrap;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Components.Combat;
 
 namespace Archeus.Battle.Systems.Setup
 {
@@ -31,8 +32,9 @@ namespace Archeus.Battle.Systems.Setup
                 AddComponentsToBattle(ref state, ecb, battleEntity, rng);
 
                 // PLAYER RELATED CREATION
+                BattleSide allySide = BattleSide.Ally;
                 Entity player = ecb.CreateEntity();
-                AddComponentsToPlayer(ref state, ecb, player, battleEntity);
+                AddComponentsToPlayer(ref state, ecb, player, battleEntity, allySide);
 
                 //DESTROY BATTLE START REQUEST ENTITY
                 ecb.DestroyEntity(requestEntity); 
@@ -58,11 +60,13 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddBuffer<BehaviourExecutionRequest>(battle);
         }
 
-        private void AddComponentsToPlayer(ref SystemState state, EntityCommandBuffer ecb, Entity player, Entity battle)
+        private void AddComponentsToPlayer(ref SystemState state, EntityCommandBuffer ecb, Entity player, Entity battle, BattleSide side)
         {
             //PLAYER RELATED COMPONENTS / BUFFERS
             ecb.AddComponent(player, new PlayerTag {});
             ecb.AddComponent(player, new OwnedBattle { Battle = battle });
+            ecb.AddComponent(player, new Team {Side = side});
+            ecb.AddComponent(player, new SelectedCharacter {Value = Entity.Null});
         }
 
     }

@@ -16,22 +16,25 @@ MonoBehaviour:
   Triggers:
   - EventType: 0
     Phase: 0
+    OwnerType: 1
     VMProgramID: TestAttack
     Priority: 0
     Conditions: []
-  - EventType: 11
+  - EventType: 13
     Phase: 0
+    OwnerType: 2
     VMProgramID: ReduceDamage20Percent
     Priority: 0
     Conditions:
     - Type: 0
-      Target: 1
+      Target: 0
       Value: 80
     - Type: 4
       Target: 1
       Value: 100
   - EventType: 1
     Phase: 0
+    OwnerType: 0
     VMProgramID: ResetTriggerTurnStart
     Priority: 0
     Conditions: []

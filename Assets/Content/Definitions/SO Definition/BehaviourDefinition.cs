@@ -14,6 +14,7 @@ public class BehaviourTriggerDefinition
 {
     public BattleEventType EventType;
     public BattleEventPhase Phase;
+    public TriggerOwnerType OwnerType;
 
     [Tooltip("VM Program ID to execute")]
     public string VMProgramID;

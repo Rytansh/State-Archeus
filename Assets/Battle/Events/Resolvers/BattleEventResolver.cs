@@ -13,6 +13,9 @@ namespace Archeus.Battle.Events.Resolvers
                 case BattleEventType.DamageRequested:
                     DamageRequestResolver.Resolve(ref context, evt);
                     break;
+                case BattleEventType.DamageConfirmed:
+                    DamageConfirmedResolver.Resolve(ref context, evt);
+                    break;
                 case BattleEventType.DamageCalculated:
                     DamageCalculatedResolver.Resolve(ref context, evt);
                     break;

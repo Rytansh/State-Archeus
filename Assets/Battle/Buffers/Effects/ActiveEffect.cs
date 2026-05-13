@@ -7,6 +7,7 @@ namespace Archeus.Battle.Buffers.Events
         public int EffectIndex;
         public float Strength;
         public int RemainingDuration;
+        public bool IsPermanent;
         public int Stacks;
     }
 }

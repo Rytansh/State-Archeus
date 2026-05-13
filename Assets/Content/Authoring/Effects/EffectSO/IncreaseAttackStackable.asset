@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: IncreaseAttackStackable
   m_EditorClassIdentifier: 
   ID: IncreaseAttackStackable
+  StatModifiers:
+  - StatType: 0
+    ModifierType: 1
   BehaviourIDs: []

@@ -62,10 +62,12 @@ namespace Archeus.Battle.Systems.Cards
             int characterIndex = lookup.CharacterIDToIndex[request.ValueRO.CharacterID]; 
             ref CharacterDefinitionBlob characterDef = ref registry.Characters[characterIndex];  
 
-            ecb.AddComponent(character, new CharacterTag { Battle = battle }); 
+            ecb.AddComponent(character, new CharacterTag {}); 
             ecb.AddComponent(character, new CardDefinitionID { Value = request.ValueRO.CharacterID}); 
             ecb.AddComponent(character, new CardRuntimeID { Value = runtimeID}); 
-            ecb.AddComponent(character, new CharacterSlot { Value = request.ValueRO.Slot }); 
+            ecb.AddComponent(character, new CharacterSlot { Value = request.ValueRO.Slot });
+            ecb.AddComponent(character, new Team { Side = request.ValueRO.Side }); 
+            ecb.AddComponent(character, new OwnedBattle {Battle = battle}); 
             ecb.AddComponent(character, new CharacterStats 
             { 
                 Attack = characterDef.CharacterBlobBaseStats.Attack, 

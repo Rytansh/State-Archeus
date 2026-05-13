@@ -33,6 +33,7 @@ namespace Archeus.Battle.Systems.Turnflow
                     });
 
                 ecb.AddComponent<BattleTurnEndCompleteTag>(battle);
+                ecb.AddComponent<EffectDurationsProcessingTag>(battle);
                 Logging.Info(LogCategory.Combat, "Ending turn.");
             }
 
