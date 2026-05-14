@@ -6,4 +6,5 @@ public class ContentDefinitionAuthoring : MonoBehaviour
     public SkillDefinition[] SkillDefinitions;
     public BehaviourDefinition[] BehaviourDefinitions;
     public AbilityProgramDefinition[] AbilityProgramDefinitions;
+    public EffectDefinition[] EffectDefinitions;
 }

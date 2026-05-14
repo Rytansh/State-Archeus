@@ -38,6 +38,48 @@ namespace Archeus.Battle.Systems.Presentation
                         ecb.AddComponent<InputSystemTag>(inputEntity);
                         ecb.AddComponent(inputEntity, new PlaceCardRequest{Player = player});
                     }
+                    if (Input.GetKeyDown(KeyCode.LeftArrow))
+                    {
+                        Entity inputEntity = ecb.CreateEntity();
+                        ecb.AddComponent<InputSystemTag>(inputEntity);
+                        ecb.AddComponent(inputEntity, new CycleTargetRequest
+                        {
+                            Player = player,
+                            Direction = -1
+                        });
+                    }
+
+                    if (Input.GetKeyDown(KeyCode.RightArrow))
+                    {
+                        Entity inputEntity = ecb.CreateEntity();
+                        ecb.AddComponent<InputSystemTag>(inputEntity);
+                        ecb.AddComponent(inputEntity, new CycleTargetRequest
+                        {
+                            Player = player,
+                            Direction = 1
+                        });
+                    }
+
+                    if (Input.GetKeyDown(KeyCode.UpArrow))
+                    {
+                        Entity inputEntity = ecb.CreateEntity();
+                        ecb.AddComponent<InputSystemTag>(inputEntity);
+                        ecb.AddComponent(inputEntity, new CycleCharacterRequest
+                        {
+                            Player = player,
+                            Direction = 1
+                        });
+                    }
+                    if (Input.GetKeyDown(KeyCode.DownArrow))
+                    {
+                        Entity inputEntity = ecb.CreateEntity();
+                        ecb.AddComponent<InputSystemTag>(inputEntity);
+                        ecb.AddComponent(inputEntity, new CycleCharacterRequest
+                        {
+                            Player = player,
+                            Direction = -1
+                        });
+                    }
                 }
             }
             

@@ -15,7 +15,7 @@ namespace Archeus.Content.Blobs
 
         public uint NormalAbilityID;
         public uint DelayAndImprovementAbilityID;
-        public BlobArray<uint> BehaviourIDs;
+        public BlobArray<int> BehaviourIndices;
     }
 
     public struct SkillBlobBaseStats

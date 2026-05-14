@@ -1,5 +1,5 @@
 using Archeus.Battle.Buffers.Events;
-using Archeus.Battle.Events.Definitions;
+using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Runtime;
 
 namespace Archeus.Battle.Events.Resolvers
@@ -13,8 +13,23 @@ namespace Archeus.Battle.Events.Resolvers
                 case BattleEventType.DamageRequested:
                     DamageRequestResolver.Resolve(ref context, evt);
                     break;
+                case BattleEventType.DamageConfirmed:
+                    DamageConfirmedResolver.Resolve(ref context, evt);
+                    break;
+                case BattleEventType.DamageCalculated:
+                    DamageCalculatedResolver.Resolve(ref context, evt);
+                    break;
+                case BattleEventType.DamageMitigated:
+                    DamageMitigatedResolver.Resolve(ref context, evt);
+                    break;
                 case BattleEventType.DamageResolved:
                     DamageResolvedResolver.Resolve(ref context, evt);
+                    break;
+                case BattleEventType.EffectApplicationRequested:
+                    EffectApplicationRequestedResolver.Resolve(ref context, evt);
+                    break;
+                case BattleEventType.EffectApplicationResolved:
+                    EffectApplicationResolvedResolver.Resolve(ref context, evt);
                     break;
                 default:
                     return;

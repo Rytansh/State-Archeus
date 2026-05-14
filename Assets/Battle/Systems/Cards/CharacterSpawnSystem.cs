@@ -10,6 +10,7 @@ using Archeus.Content.Registries;
 using Archeus.Content.Blobs;
 using Archeus.Content.Lookup;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Buffers.Events;
 
 namespace Archeus.Battle.Systems.Cards
 {
@@ -61,24 +62,29 @@ namespace Archeus.Battle.Systems.Cards
             int characterIndex = lookup.CharacterIDToIndex[request.ValueRO.CharacterID]; 
             ref CharacterDefinitionBlob characterDef = ref registry.Characters[characterIndex];  
 
-            ecb.AddComponent(character, new CharacterTag { Battle = battle }); 
+            ecb.AddComponent(character, new CharacterTag {}); 
             ecb.AddComponent(character, new CardDefinitionID { Value = request.ValueRO.CharacterID}); 
             ecb.AddComponent(character, new CardRuntimeID { Value = runtimeID}); 
-            ecb.AddComponent(character, new CharacterSlot { Value = request.ValueRO.Slot }); 
+            ecb.AddComponent(character, new CharacterSlot { Value = request.ValueRO.Slot });
+            ecb.AddComponent(character, new Team { Side = request.ValueRO.Side }); 
+            ecb.AddComponent(character, new OwnedBattle {Battle = battle}); 
             ecb.AddComponent(character, new CharacterStats 
             { 
                 Attack = characterDef.CharacterBlobBaseStats.Attack, 
                 Defense = characterDef.CharacterBlobBaseStats.Defense, 
-                MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth 
+                MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth,
+                CritRATE = characterDef.CharacterBlobBaseStats.CritRATE,
+                CritDMG = characterDef.CharacterBlobBaseStats.CritDMG
             }); 
             ecb.AddComponent(character, new CurrentHealth { Value = characterDef.CharacterBlobBaseStats.MaxHealth }); 
 
             DynamicBuffer<BehaviourReference> behaviourReferenceBuffer = ecb.AddBuffer<BehaviourReference>(character); 
             DynamicBuffer<BehaviourRuntimeState> behaviourStateBuffer = ecb.AddBuffer<BehaviourRuntimeState>(character);
-            for (int i = 0; i < characterDef.BehaviourIDs.Length; i++) 
+            DynamicBuffer<ActiveEffect> activeEffectsBuffer = ecb.AddBuffer<ActiveEffect>(character);
+            
+            for (int i = 0; i < characterDef.BehaviourIndices.Length; i++) 
             { 
-                uint behaviourID = characterDef.BehaviourIDs[i]; 
-                int behaviourIndex = lookup.BehaviourIDToIndex[behaviourID]; 
+                int behaviourIndex = characterDef.BehaviourIndices[i]; 
                 behaviourReferenceBuffer.Add(new BehaviourReference { BehaviourIndex = behaviourIndex });
                 BehaviourRuntimeState behaviourState = new BehaviourRuntimeState{ Memory = default };
                 behaviourStateBuffer.Add(behaviourState);

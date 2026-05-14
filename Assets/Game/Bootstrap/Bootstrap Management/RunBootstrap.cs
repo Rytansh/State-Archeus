@@ -24,11 +24,11 @@ namespace Archeus.Game.Bootstrap
 
         public void Run()
         {
+            Logging.DisableCategory(LogCategory.VM);
             bootstrapEntry = new BattleBootstrapEntry();
 
             try
             {
-                Logging.DisableCategory(LogCategory.Testing);
                 bootstrapEntry.Initialise();
                 RootContext = bootstrapEntry.getRootContext();
 

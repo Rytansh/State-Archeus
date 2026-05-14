@@ -1,6 +1,6 @@
 using Unity.Entities;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Content.Lookup;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Content.Blobs
 {
@@ -15,6 +15,7 @@ namespace Archeus.Content.Blobs
     {
         public BattleEventType EventType;
         public BattleEventPhase Phase;
+        public TriggerOwnerType OwnerType;
         public int VMProgramIndex;
         public BlobArray<EventConditionBlob> Conditions;
         public int Priority;

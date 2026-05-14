@@ -5,9 +5,9 @@ using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Buffers.Events;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Systems.Turnflow
 {

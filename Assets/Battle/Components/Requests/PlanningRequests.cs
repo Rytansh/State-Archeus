@@ -14,6 +14,18 @@ namespace Archeus.Battle.Components.Requests
     {
         public Entity Player;
     }
+
+    public struct CycleTargetRequest : IComponentData
+    {
+        public Entity Player;
+        public int Direction;
+    }
+
+    public struct CycleCharacterRequest : IComponentData
+    {
+        public Entity Player;
+        public int Direction;
+    }
 }
 
 

@@ -3,7 +3,6 @@ using Unity.Collections;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Core;
-using Archeus.Core.Debugging;
 
 namespace Archeus.Battle.Systems.Setup
 {
