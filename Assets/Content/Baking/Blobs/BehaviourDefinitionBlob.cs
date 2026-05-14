@@ -1,6 +1,6 @@
 using Unity.Entities;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Content.Lookup;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Content.Blobs
 {

@@ -1,5 +1,5 @@
 using Archeus.Battle.Buffers.Events;
-using Archeus.Battle.Events.Definitions;
+using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Runtime;
 
 namespace Archeus.Battle.Events.Resolvers

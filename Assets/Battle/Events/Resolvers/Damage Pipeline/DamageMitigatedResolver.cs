@@ -1,7 +1,7 @@
 using System;
 using Archeus.Battle.Buffers.Events;
-using Archeus.Battle.Components.Stats;
-using Archeus.Battle.Events.Definitions;
+using Archeus.Battle.Data.Effects;
+using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Runtime;
 using Archeus.Battle.Stats;
@@ -36,7 +36,9 @@ namespace Archeus.Battle.Events.Resolvers
                         {
                             AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
                             BaseDamage = evt.Payload.Damage.BaseDamage,
-                            FinalDamage = finalDamageToTarget
+                            FinalDamage = finalDamageToTarget,
+                            DidCrit = evt.Payload.Damage.DidCrit,
+                            CritMultiplier = evt.Payload.Damage.CritMultiplier
                         }
                     }
                 }

@@ -5,12 +5,12 @@ using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Events.Runtime;
 using Archeus.Battle.Events.Resolvers;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Buffers.VM;
 using Archeus.Battle.VM.Execution;
 using Archeus.Content.Registries;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Systems.Events
 {
@@ -20,6 +20,7 @@ namespace Archeus.Battle.Systems.Events
         private const int MAX_EXECUTIONS = 10000;
         private ComponentLookup<CharacterStats> characterStatsLookup;
         private ComponentLookup<CurrentHealth> characterHPLookup;
+        private ComponentLookup<BattleRNG> battleRNGLookup;
         private BufferLookup<BehaviourRuntimeState> behaviourStateLookup;
         private BufferLookup<ActiveEffect> activeEffectsLookup;
 
@@ -27,6 +28,7 @@ namespace Archeus.Battle.Systems.Events
         {
             characterStatsLookup = state.GetComponentLookup<CharacterStats>(true);
             characterHPLookup = state.GetComponentLookup<CurrentHealth>();
+            battleRNGLookup = state.GetComponentLookup<BattleRNG>();
             behaviourStateLookup = state.GetBufferLookup<BehaviourRuntimeState>();
             activeEffectsLookup = state.GetBufferLookup<ActiveEffect>();
         }
@@ -36,6 +38,7 @@ namespace Archeus.Battle.Systems.Events
             // UPDATE LOOKUP TABLES
             characterStatsLookup.Update(ref state);
             characterHPLookup.Update(ref state);
+            battleRNGLookup.Update(ref state);
             behaviourStateLookup.Update(ref state);
             activeEffectsLookup.Update(ref state);
 
@@ -53,6 +56,7 @@ namespace Archeus.Battle.Systems.Events
                     ChainBuffer = chainedEventQueue,
                     StatsLookup = characterStatsLookup,
                     HealthLookup = characterHPLookup,
+                    RNGLookup = battleRNGLookup,
                     EffectLookup = activeEffectsLookup,
                     BattleRegistryReference = battleRegistryReference
                 };

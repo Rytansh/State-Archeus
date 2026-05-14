@@ -4,9 +4,10 @@ using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Events.Runtime;
 using Archeus.Core.Debugging;
 using Archeus.Battle.Components.Stats;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Stats;
+using Archeus.Battle.Data.Effects;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Events.Resolvers
 {
@@ -28,7 +29,15 @@ namespace Archeus.Battle.Events.Resolvers
             float maxHealth = StatResolver.Resolve(target, StatType.MaxHealth, ref ctx);
             float hpPercent = hp.Value / maxHealth * 100f;
 
-            Logging.Info(LogCategory.Combat, $"[Health Update] Entity {target.Index}: " + $"{oldHp} -> {hp.Value} (-{damageToApply}) | " +$"Current HP: {hpPercent:F1}%");
+            bool didCrit = evt.Payload.Damage.DidCrit;
+            if (didCrit)
+            {
+                Logging.Info(LogCategory.Combat, $"[Health Update] CRITICAL HIT!! Entity {target.Index}: " + $"{oldHp} -> {hp.Value} (-{damageToApply}) | " +$"Current HP: {hpPercent:F1}%");
+            }
+            else
+            {
+                Logging.Info(LogCategory.Combat, $"[Health Update] Entity {target.Index}: " + $"{oldHp} -> {hp.Value} (-{damageToApply}) | " +$"Current HP: {hpPercent:F1}%");
+            }
 
             ctx.ChainBuffer.Add(new ChainedBattleEvent
             {
@@ -44,7 +53,9 @@ namespace Archeus.Battle.Events.Resolvers
                         {
                             AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
                             BaseDamage = evt.Payload.Damage.BaseDamage,
-                            FinalDamage = evt.Payload.Damage.FinalDamage
+                            FinalDamage = evt.Payload.Damage.FinalDamage,
+                            DidCrit = evt.Payload.Damage.DidCrit,
+                            CritMultiplier = evt.Payload.Damage.CritMultiplier
                         }
                     }
                 }

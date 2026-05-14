@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Archeus.Battle.VM.Programs;
-using Archeus.Battle.Events.Definitions;
+using Archeus.Battle.Data.Events;
+using Archeus.Battle.Data.VM;
 
 public static class AbilityProgramCompiler
 {

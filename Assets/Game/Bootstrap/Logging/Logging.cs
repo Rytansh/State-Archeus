@@ -19,7 +19,8 @@ namespace Archeus.Core.Debugging
             LogCategory.Event,
             LogCategory.Combat,
             LogCategory.Setup,
-            LogCategory.VM
+            LogCategory.VM,
+            LogCategory.RNG
         };
 
         private static LogLevel minimumLevel = LogLevel.Info;
@@ -33,7 +34,8 @@ namespace Archeus.Core.Debugging
             { LogCategory.Event, "#FFA500" },
             { LogCategory.VM, "#FF69B4" },
             { LogCategory.Combat, "#FF4444" },
-            { LogCategory.Setup, "#00CED1" }
+            { LogCategory.Setup, "#00CED1" },
+            { LogCategory.RNG, "#3800d1" }
         };
 
         // ================================
@@ -126,7 +128,8 @@ namespace Archeus.Core.Debugging
         Event,
         VM,
         Combat,
-        Setup
+        Setup,
+        RNG
     }
 
     public enum LogLevel

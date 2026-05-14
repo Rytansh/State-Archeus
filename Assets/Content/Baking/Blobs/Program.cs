@@ -1,6 +1,6 @@
 using Unity.Entities;
-using Archeus.Battle.VM.Programs;
 using Archeus.Content.Lookup;
+using Archeus.Battle.Data.VM;
 
 namespace Archeus.Content.Blobs
 {

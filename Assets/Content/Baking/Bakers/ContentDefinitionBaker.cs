@@ -3,8 +3,9 @@ using Unity.Entities;
 using System.Collections.Generic;
 using Archeus.Content.Blobs;
 using Archeus.Content.Registries;
-using Archeus.Battle.VM.Programs;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Data.VM;
+using Archeus.Battle.Data.Effects;
 
 public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
 {
@@ -246,6 +247,8 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
     private static void WriteEffect(ref EffectBlob blob, EffectDefinition def, ref BlobBuilder builder, Dictionary<uint, int> behaviourMap)
     {
         blob.ID = StableHash32.HashFromString(def.ID);
+
+        blob.StackBehaviour = def.StackBehaviour;
 
         var modifiers = builder.Allocate(ref blob.StatModifiers, def.StatModifiers.Count);
 

@@ -2,10 +2,10 @@ using Unity.Entities;
 using Unity.Collections;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Core;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Systems.Turnflow
 {

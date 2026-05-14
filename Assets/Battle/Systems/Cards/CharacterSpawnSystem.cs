@@ -72,7 +72,9 @@ namespace Archeus.Battle.Systems.Cards
             { 
                 Attack = characterDef.CharacterBlobBaseStats.Attack, 
                 Defense = characterDef.CharacterBlobBaseStats.Defense, 
-                MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth 
+                MaxHealth = characterDef.CharacterBlobBaseStats.MaxHealth,
+                CritRATE = characterDef.CharacterBlobBaseStats.CritRATE,
+                CritDMG = characterDef.CharacterBlobBaseStats.CritDMG
             }); 
             ecb.AddComponent(character, new CurrentHealth { Value = characterDef.CharacterBlobBaseStats.MaxHealth }); 
 

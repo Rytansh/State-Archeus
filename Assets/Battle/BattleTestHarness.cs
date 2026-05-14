@@ -16,7 +16,7 @@ public class BattleTestHarness : MonoBehaviour
         em.AddComponentData(e1, new StartBattleRequest
         {
             BattleID = 1,
-            BattleSeed = seedService.CreateDerivedSeed("battle"),
+            BattleSeed = 12345678,
             BattleConfigID = 0
         });
 

@@ -7,7 +7,7 @@ using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
 using Archeus.Core.Debugging;
 
-namespace Archeus.Battle.Systems.Targeting
+namespace Archeus.Battle.Systems.Cards
 {
     [UpdateInGroup(typeof(PlanningStageGroup))]
     public partial struct TargetSelectionSystem : ISystem

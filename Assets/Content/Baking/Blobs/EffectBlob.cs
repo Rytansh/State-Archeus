@@ -1,6 +1,6 @@
 using Unity.Entities;
-using Archeus.Battle.VM.Programs;
 using Archeus.Content.Lookup;
+using Archeus.Battle.Data.Effects;
 
 namespace Archeus.Content.Blobs
 {
@@ -8,6 +8,8 @@ namespace Archeus.Content.Blobs
     {
         public uint ID;
         public uint GetID() => ID;
+
+        public StackingBehaviour StackBehaviour;
         public BlobArray<StatModifier> StatModifiers;
         public BlobArray<int> BehaviourIndices;
     }

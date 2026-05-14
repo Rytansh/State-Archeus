@@ -4,13 +4,12 @@ using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Combat;
 using Archeus.Battle.Components.Turns;
-using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Core.Debugging;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Systems.Turnflow
 {

@@ -1,6 +1,6 @@
 using Unity.Entities;
-using Archeus.Battle.Events.Definitions;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Data.Events;
 
 namespace Archeus.Battle.Buffers.Events
 {
