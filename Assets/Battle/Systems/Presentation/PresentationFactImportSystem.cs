@@ -6,7 +6,7 @@ using Unity.Entities;
 namespace Archeus.Battle.Systems.Presentation
 {
     [DisableAutoCreation]
-    [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
+    [UpdateInGroup(typeof(BattlePresentationGroup), OrderFirst = true)]
     public partial class PresentationFactImportSystem : SystemBase
     {
         private EntityQuery bridgeQuery;

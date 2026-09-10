@@ -11,6 +11,8 @@ using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Context;
 using Archeus.Battle.Events.Resolvers;
+using Archeus.Battle.Presentation.Factory;
+using Archeus.Battle.Presentation.Facts;
 using Archeus.Battle.VM.Execution;
 using Archeus.Content.Registries;
 using Archeus.Core.Debugging;
@@ -261,6 +263,14 @@ namespace Archeus.Battle.Systems.Events
 
                     ProcessFrameStep(ref state, ref ctx, ref frame, executionRequestQueue);
                 }
+
+                EmitCompletedActionFacts(
+                    ref ctx,
+                    in eventFrames,
+                    chainedEventQueue,
+                    executionRequestQueue,
+                    in continuations
+                );
 
                 continuations.Dispose();
                 eventFrames.Dispose();
@@ -693,6 +703,67 @@ namespace Archeus.Battle.Systems.Events
             return false;
         }
 
+        private bool HasPendingActionWork(
+            uint actionExecutionID,
+            in NativeList<EventFrame> eventFrames,
+            DynamicBuffer<ChainedBattleEvent> chainedEventQueue,
+            DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue,
+            in NativeList<AbilityExecutionContinuation> continuations
+        )
+        {
+            if (actionExecutionID == EventActionData.InvalidExecutionID)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < eventFrames.Length; i++)
+            {
+                EventFrame frame = eventFrames[i];
+
+                if (frame.Completed)
+                    continue;
+
+                if (frame.Event.ActionData.ActionExecutionID == actionExecutionID)
+                {
+                    return true;
+                }
+            }
+
+            for (int i = 0; i < continuations.Length; i++)
+            {
+                AbilityExecutionContinuation continuation = continuations[i];
+
+                if (
+                    continuation.BaseEmissionContext.ActionData.ActionExecutionID
+                    == actionExecutionID
+                )
+                {
+                    return true;
+                }
+            }
+
+            for (int i = 0; i < chainedEventQueue.Length; i++)
+            {
+                if (chainedEventQueue[i].Event.ActionData.ActionExecutionID == actionExecutionID)
+                {
+                    return true;
+                }
+            }
+
+            for (int i = 0; i < executionRequestQueue.Length; i++)
+            {
+                if (
+                    executionRequestQueue[i].EmissionContext.ActionData.ActionExecutionID
+                    == actionExecutionID
+                )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private bool TryResumeReadyContinuation(
             ref NativeList<AbilityExecutionContinuation> continuations,
             ref NativeList<EventFrame> eventFrames,
@@ -804,6 +875,71 @@ namespace Archeus.Battle.Systems.Events
             }
 
             return false;
+        }
+
+        private void EmitCompletedActionFacts(
+            ref BattleContext ctx,
+            in NativeList<EventFrame> eventFrames,
+            DynamicBuffer<ChainedBattleEvent> chainedEventQueue,
+            DynamicBuffer<BehaviourExecutionRequest> executionRequestQueue,
+            in NativeList<AbilityExecutionContinuation> continuations
+        )
+        {
+            for (int i = ctx.ActionExecutionStates.Length - 1; i >= 0; i--)
+            {
+                ActionExecutionState actionState = ctx.ActionExecutionStates[i];
+
+                if (
+                    HasPendingActionWork(
+                        actionState.ActionExecutionID,
+                        in eventFrames,
+                        chainedEventQueue,
+                        executionRequestQueue,
+                        in continuations
+                    )
+                )
+                {
+                    continue;
+                }
+
+                uint sourceRuntimeID = ctx.CardRuntimeIDLookup[actionState.Source].Value;
+
+                uint targetRuntimeID = ctx.CardRuntimeIDLookup[actionState.PrimaryTarget].Value;
+
+                PresentationFactContext factContext = new PresentationFactContext
+                {
+                    BattleRuntimeID = ctx.BattleID,
+
+                    SourceRuntimeID = sourceRuntimeID,
+                    TargetRuntimeID = targetRuntimeID,
+
+                    ActionDefinitionID = 0,
+
+                    ActionExecutionID = actionState.ActionExecutionID,
+
+                    ActionResultIndex = PresentationFactMetadata.NoActionResult,
+
+                    GroupID = EventStructuralData.InvalidGroupID,
+
+                    Generation = 0,
+                };
+
+                PresentationFactEmitter.EmitActionCompletedFact(
+                    factContext,
+                    ctx.PresentationFactQueue,
+                    ctx.PresentationSequenceCounter
+                );
+
+                Logging.Info(
+                    LogCategory.Simulation,
+                    $"Action Completed: "
+                        + $"Execution={actionState.ActionExecutionID} | "
+                        + $"Type={actionState.ActionType} | "
+                        + $"Source={actionState.Source.Index}"
+                );
+
+                ctx.ActionExecutionStates.RemoveAt(i);
+            }
         }
 
         private bool IsExecutionRequestBlocked(

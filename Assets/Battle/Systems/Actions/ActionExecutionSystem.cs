@@ -1,11 +1,16 @@
 using Archeus.Battle.Buffers.Actions;
 using Archeus.Battle.Buffers.Events;
+using Archeus.Battle.Buffers.Presentation;
 using Archeus.Battle.Components.Core;
+using Archeus.Battle.Components.Ownership;
+using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Data.Actions;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Context;
 using Archeus.Battle.Events.Factory;
+using Archeus.Battle.Presentation.Factory;
+using Archeus.Battle.Presentation.Facts;
 using Archeus.Battle.Systems.Events;
 using Archeus.Core.Debugging;
 using Unity.Entities;
@@ -20,15 +25,27 @@ namespace Archeus.Battle.Systems.Actions
         public void OnUpdate(ref SystemState state)
         {
             foreach (
-                var (requests, actionStates, eventQueue, actionCounter, groupCounter) in SystemAPI
+                var (
+                    requests,
+                    actionStates,
+                    eventQueue,
+                    factQueue,
+                    actionCounter,
+                    groupCounter,
+                    presentationSequenceCounter,
+                    battle
+                ) in SystemAPI
                     .Query<
                         DynamicBuffer<ActionExecutionRequest>,
                         DynamicBuffer<ActionExecutionState>,
                         DynamicBuffer<BattleEvent>,
+                        DynamicBuffer<PresentationFact>,
                         RefRW<BattleActionExecutionCounter>,
-                        RefRW<BattleEventGroupIDCounter>
+                        RefRW<BattleEventGroupIDCounter>,
+                        RefRW<PresentationSequenceCounter>
                     >()
                     .WithAll<BattleTag>()
+                    .WithEntityAccess()
             )
             {
                 if (requests.Length == 0)
@@ -60,6 +77,10 @@ namespace Archeus.Battle.Systems.Actions
                     {
                         ActionExecutionID = executionID,
                         NextResultGroupIndex = 0,
+
+                        Source = request.Source,
+                        PrimaryTarget = request.PrimaryTarget,
+                        ActionType = request.CharacterAction,
                     }
                 );
 
@@ -81,6 +102,34 @@ namespace Archeus.Battle.Systems.Actions
                     },
                 };
 
+                ulong battleRuntimeID = SystemAPI.GetComponent<BattleID>(battle).Value;
+
+                uint sourceRuntimeID = SystemAPI.GetComponent<CardRuntimeID>(request.Source).Value;
+
+                uint targetRuntimeID = SystemAPI
+                    .GetComponent<CardRuntimeID>(request.PrimaryTarget)
+                    .Value;
+                PresentationFactContext presentationContext = new PresentationFactContext
+                {
+                    BattleRuntimeID = battleRuntimeID,
+
+                    SourceRuntimeID = sourceRuntimeID,
+                    TargetRuntimeID = targetRuntimeID,
+
+                    ActionDefinitionID = 0,
+                    ActionExecutionID = executionID,
+                    ActionResultIndex = PresentationFactMetadata.NoActionResult,
+
+                    GroupID = EventStructuralData.InvalidGroupID,
+                    Generation = 0,
+                };
+
+                PresentationFactEmitter.EmitActionStartedFact(
+                    presentationContext,
+                    factQueue,
+                    presentationSequenceCounter
+                );
+
                 DynamicBuffer<BattleEvent> writableEventQueue = eventQueue;
 
                 BattleEventEmitter.EmitOriginEvent(
@@ -90,8 +139,8 @@ namespace Archeus.Battle.Systems.Actions
                 );
 
                 Logging.Info(
-                    LogCategory.Combat,
-                    $"[ACTION] Started "
+                    LogCategory.Simulation,
+                    $"Action Started:"
                         + $"Execution={executionID} | "
                         + $"Type={request.CharacterAction} | "
                         + $"Source={request.Source.Index}"

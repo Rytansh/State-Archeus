@@ -14,7 +14,7 @@ namespace Archeus.Battle.Presentation.Factory
         public static void EmitDamageAppliedFact(
             PresentationHitPayload hitPayload,
             PresentationFactContext context,
-            ref DynamicBuffer<PresentationFact> factQueue,
+            DynamicBuffer<PresentationFact> factQueue,
             RefRW<PresentationSequenceCounter> sequenceCounter
         )
         {
@@ -25,12 +25,44 @@ namespace Archeus.Battle.Presentation.Factory
                 FactPayload = new PresentationFactPayload { HitPayload = hitPayload },
             };
 
-            EmitFinalFact(DamageAppliedFact, ref factQueue);
+            EmitFinalFact(DamageAppliedFact, factQueue);
+        }
+
+        public static void EmitActionStartedFact(
+            PresentationFactContext context,
+            DynamicBuffer<PresentationFact> factQueue,
+            RefRW<PresentationSequenceCounter> sequenceCounter
+        )
+        {
+            PresentationFact ActionStartedFact = new PresentationFact
+            {
+                FactType = PresentationFactType.ActionStarted,
+                FactMetadata = ConstructFactMetadata(context, sequenceCounter),
+                FactPayload = default,
+            };
+
+            factQueue.Add(ActionStartedFact);
+        }
+
+        public static void EmitActionCompletedFact(
+            PresentationFactContext context,
+            DynamicBuffer<PresentationFact> factQueue,
+            RefRW<PresentationSequenceCounter> sequenceCounter
+        )
+        {
+            PresentationFact actionCompletedFact = new PresentationFact
+            {
+                FactType = PresentationFactType.ActionCompleted,
+                FactMetadata = ConstructFactMetadata(context, sequenceCounter),
+                FactPayload = default,
+            };
+
+            EmitFinalFact(actionCompletedFact, factQueue);
         }
 
         private static void EmitFinalFact(
             PresentationFact fact,
-            ref DynamicBuffer<PresentationFact> factQueue
+            DynamicBuffer<PresentationFact> factQueue
         )
         {
             factQueue.Add(fact);

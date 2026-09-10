@@ -83,7 +83,7 @@ namespace Archeus.Battle.Events.Resolvers
             PresentationFactEmitter.EmitDamageAppliedFact(
                 hitPayload,
                 factContext,
-                ref ctx.PresentationFactQueue,
+                ctx.PresentationFactQueue,
                 ctx.PresentationSequenceCounter
             );
 

@@ -1,4 +1,7 @@
 using System;
+using Archeus.Battle.Components.Presentation;
+using Archeus.Battle.Presentation;
+using Archeus.Battle.Presentation.Presenters;
 using Archeus.Battle.Systems.Presentation;
 using Archeus.Core.Debugging;
 using Unity.Entities;
@@ -17,6 +20,10 @@ namespace Archeus.Game.Bootstrap
             {
                 typeof(BattlePresentationProbeSystem),
                 typeof(PresentationFactImportSystem),
+                typeof(BattlePresenterRegistrationSystem),
+                typeof(BattlePresentationGroup),
+                typeof(BattlePresentationAssemblySystem),
+                typeof(PresentationPacketProbeSystem),
             };
 
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(
@@ -38,6 +45,14 @@ namespace Archeus.Game.Bootstrap
             entityManager.AddComponentObject(
                 bridgeEntity,
                 new BattlePresentationBridgeReference { Bridge = bridge }
+            );
+
+            PresentationRegistry registry = new PresentationRegistry();
+            Entity registryEntity = entityManager.CreateEntity();
+            entityManager.SetName(registryEntity, "Presentation Registry Reference");
+            entityManager.AddComponentObject(
+                registryEntity,
+                new PresentationRegistryReference { Registry = registry }
             );
 
             Logging.Info(
