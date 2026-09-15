@@ -11,21 +11,8 @@ namespace Archeus.Battle.VM.Execution
 {
     public static class AbilityInterpreterTooling
     {
-        public static bool BeginsGameplayOperation(AbilityOpcode opcode)
-        {
-            return opcode switch
-            {
-                AbilityOpcode.DealDamage => true,
-                AbilityOpcode.ApplyEffect => true,
-
-                //future actions here
-
-                _ => false,
-            };
-        }
-
         public static bool TryBeginGameplayOperation(
-            AbilityOpcode opcode,
+            in AbilityInstruction instruction,
             ref AbilityExecutionFrame frame,
             ref AbilityExecutionContext context,
             out EventEmissionContext operationContext,
@@ -33,13 +20,25 @@ namespace Archeus.Battle.VM.Execution
         )
         {
             operationContext = context.EmissionContext;
-            operationID = 0;
 
-            if (!BeginsGameplayOperation(opcode))
+            operationID = EventExecutionData.InvalidOperationID;
+
+            AbilityInstructionFlags flags = instruction.Flags;
+
+            if ((flags & AbilityInstructionFlags.GameplayOperation) == 0)
+            {
                 return false;
+            }
 
             if (frame.Targets.Length == 0)
+            {
                 return false;
+            }
+
+            bool isDirectActionOperation =
+                operationContext.ActionData.HasActionContext
+                && operationContext.ExecutionData.OperationID
+                    == EventExecutionData.InvalidOperationID;
 
             if (operationContext.ActionData.HasActionContext)
             {
@@ -50,7 +49,16 @@ namespace Archeus.Battle.VM.Execution
                     );
             }
 
+            if (isDirectActionOperation && (flags & AbilityInstructionFlags.StartsActionHit) != 0)
+            {
+                operationContext.ActionData.HitIndex = ActionHitIndexAllocator.Allocate(
+                    operationContext.ActionData.ActionExecutionID,
+                    context.ActionExecutionStates
+                );
+            }
+
             operationID = OperationIDAllocator.Allocate(context.OperationCounter);
+
             operationContext.ExecutionData.OperationID = operationID;
 
             return true;

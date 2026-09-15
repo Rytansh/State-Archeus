@@ -4,6 +4,8 @@ namespace Archeus.Battle.Presentation.Facts
     {
         public const uint NoAction = 0;
         public const ushort NoActionResult = ushort.MaxValue;
+        public const ushort NoHit = ushort.MaxValue;
+        public ushort HitIndex;
 
         public ulong BattleRuntimeID;
 
@@ -28,6 +30,7 @@ namespace Archeus.Battle.Presentation.Facts
         public uint ActionDefinitionID;
         public uint ActionExecutionID;
         public ushort ActionResultIndex;
+        public ushort HitIndex;
         public uint GroupID;
         public ushort Generation;
     }

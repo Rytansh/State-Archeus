@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16085b1045e2bb64b895cdcf129754aa, type: 3}
+  m_Name: TestRecipe
+  m_EditorClassIdentifier: 
+  backend: 1
+  timeline: {fileID: 11400000, guid: e3e646035b1848e4393503d9001ef1dc, type: 2}
+  resultBindings:
+  - hitIndex: 0
+    impacts:
+    - impactIndex: 0
+      weight: 0.25
+    - impactIndex: 1
+      weight: 0.75
+  - hitIndex: 1
+    impacts:
+    - impactIndex: 2
+      weight: 1

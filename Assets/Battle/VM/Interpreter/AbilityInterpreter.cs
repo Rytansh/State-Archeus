@@ -36,7 +36,7 @@ namespace Archeus.Battle.VM.Execution
                 ref var instruction = ref program.Instructions[frame.InstructionPointer];
 
                 bool beganGameplayOperation = AbilityInterpreterTooling.TryBeginGameplayOperation(
-                    instruction.Opcode,
+                    in instruction,
                     ref frame,
                     ref context,
                     out EventEmissionContext instructionEmissionContext,

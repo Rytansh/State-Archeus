@@ -355,8 +355,11 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
             instructions[i] = new AbilityInstruction
             {
                 Opcode = defInstr.Opcode,
+
                 A = defInstr.A,
                 B = defInstr.B,
+
+                Flags = defInstr.Flags,
             };
         }
     }

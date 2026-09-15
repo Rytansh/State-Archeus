@@ -86,6 +86,7 @@ namespace Archeus.Battle.Presentation.Factory
                 ActionDefinitionID = context.ActionDefinitionID,
                 ActionExecutionID = context.ActionExecutionID,
                 ActionResultIndex = context.ActionResultIndex,
+                HitIndex = context.HitIndex,
 
                 GroupID = context.GroupID,
                 Generation = context.Generation,
@@ -116,6 +117,11 @@ namespace Archeus.Battle.Presentation.Factory
                             ? "None"
                             : metadata.ActionResultIndex.ToString();
 
+                    string hitIndex =
+                        metadata.HitIndex == PresentationFactMetadata.NoHit
+                            ? "None"
+                            : metadata.HitIndex.ToString();
+
                     Logging.Info(
                         LogCategory.Simulation,
                         $"Created presentation fact: "
@@ -127,7 +133,8 @@ namespace Archeus.Battle.Presentation.Factory
                             + $"Group={metadata.GroupID} | "
                             + $"Gen={metadata.Generation} | "
                             + $"Action={metadata.ActionExecutionID} | "
-                            + $"Result={actionResult} | "
+                            + $"RuntimeResult={actionResult} | "
+                            + $"Hit={hitIndex} | "
                             + $"Damage={hit.Damage} | "
                             + $"Crit={hit.IsCrit}"
                     );

@@ -2,19 +2,23 @@ using System;
 using System.Collections.Generic;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Data.VM;
+using Archeus.Battle.VM;
 
 public static class AbilityProgramCompiler
 {
-    public static List<InstructionDefinition> Compile(string source, Dictionary<uint, int> effectMap)
+    public static List<InstructionDefinition> Compile(
+        string source,
+        Dictionary<uint, int> effectMap
+    )
     {
         if (string.IsNullOrWhiteSpace(source))
         {
             return new List<InstructionDefinition>
             {
-                new InstructionDefinition{ Opcode = AbilityOpcode.End }
+                new InstructionDefinition { Opcode = AbilityOpcode.End },
             };
         }
-        
+
         var lines = source.Split('\n');
 
         Dictionary<string, int> labels = new();
@@ -57,17 +61,25 @@ public static class AbilityProgramCompiler
             {
                 A = ParseArgument(opcode, parts[1], labels, effectMap);
             }
-            instructions.Add(new InstructionDefinition
-            {
-                Opcode = opcode,
-                A = A
-            });
+            instructions.Add(
+                new InstructionDefinition
+                {
+                    Opcode = opcode,
+                    A = A,
+                    Flags = AbilityOpcodeSemantics.GetFlags(opcode),
+                }
+            );
         }
 
         return instructions;
     }
 
-    private static int ParseArgument(AbilityOpcode opcode, string arg, Dictionary<string, int> labels, Dictionary<uint, int> effectMap)
+    private static int ParseArgument(
+        AbilityOpcode opcode,
+        string arg,
+        Dictionary<string, int> labels,
+        Dictionary<uint, int> effectMap
+    )
     {
         // labels always win
         if (labels.ContainsKey(arg))

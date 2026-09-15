@@ -24,6 +24,8 @@ namespace Archeus.Game.Bootstrap
                 typeof(BattlePresentationGroup),
                 typeof(BattlePresentationAssemblySystem),
                 typeof(PresentationPacketProbeSystem),
+                typeof(PresentationPlanCompilerSystem),
+                typeof(PresentationSchedulingSystem),
             };
 
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(
@@ -47,12 +49,22 @@ namespace Archeus.Game.Bootstrap
                 new BattlePresentationBridgeReference { Bridge = bridge }
             );
 
+            // Create reference to the presentation registry
             PresentationRegistry registry = new PresentationRegistry();
             Entity registryEntity = entityManager.CreateEntity();
             entityManager.SetName(registryEntity, "Presentation Registry Reference");
             entityManager.AddComponentObject(
                 registryEntity,
                 new PresentationRegistryReference { Registry = registry }
+            );
+
+            // Create reference to the presentation RECIPE registry
+            PresentationRecipeRegistry recipeRegistry = new PresentationRecipeRegistry();
+            Entity recipeRegistryEntity = entityManager.CreateEntity();
+            entityManager.SetName(recipeRegistryEntity, "Presentation Recipe Registry Reference");
+            entityManager.AddComponentObject(
+                recipeRegistryEntity,
+                new PresentationRecipeRegistryReference { Registry = recipeRegistry }
             );
 
             Logging.Info(

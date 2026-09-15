@@ -10,10 +10,11 @@ public class AbilityProgramDefinition : ScriptableObject
     public string Source;
 }
 
-[System.Serializable]  
-public class InstructionDefinition 
-{ 
-    public AbilityOpcode Opcode; 
-    public int A; 
-    public int B; 
+[System.Serializable]
+public class InstructionDefinition
+{
+    public AbilityOpcode Opcode;
+    public int A;
+    public int B;
+    public AbilityInstructionFlags Flags;
 }

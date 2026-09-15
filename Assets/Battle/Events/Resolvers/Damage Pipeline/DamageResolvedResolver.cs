@@ -78,6 +78,7 @@ namespace Archeus.Battle.Events.Resolvers
                 ActionDefinitionID = 0,
                 ActionExecutionID = evt.ActionData.ActionExecutionID,
                 ActionResultIndex = evt.ActionData.ActionResultGroupIndex,
+                HitIndex = evt.ActionData.HitIndex,
             };
 
             PresentationFactEmitter.EmitDamageAppliedFact(

@@ -6,5 +6,6 @@ namespace Archeus.Battle.Data.VM
         public int A;
         public int B;
         public int C;
+        public AbilityInstructionFlags Flags;
     }
 }
