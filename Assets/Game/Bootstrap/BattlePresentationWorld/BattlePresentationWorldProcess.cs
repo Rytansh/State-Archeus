@@ -23,9 +23,10 @@ namespace Archeus.Game.Bootstrap
                 typeof(BattlePresenterRegistrationSystem),
                 typeof(BattlePresentationGroup),
                 typeof(BattlePresentationAssemblySystem),
-                typeof(PresentationPacketProbeSystem),
                 typeof(PresentationPlanCompilerSystem),
+                typeof(BattlePresentationRunnerRegistrationSystem),
                 typeof(PresentationSchedulingSystem),
+                typeof(TimelinePresentationExecutorSystem),
             };
 
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(

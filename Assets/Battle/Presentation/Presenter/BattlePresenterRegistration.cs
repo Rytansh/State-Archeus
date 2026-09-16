@@ -8,7 +8,6 @@ namespace Archeus.Battle.Presentation.Presenters
 {
     [DisableAutoCreation]
     [UpdateInGroup(typeof(BattlePresentationGroup))]
-    [UpdateBefore(typeof(PresentationPacketProbeSystem))]
     public partial class BattlePresenterRegistrationSystem : SystemBase
     {
         private EntityQuery registryQuery;

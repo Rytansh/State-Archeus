@@ -139,6 +139,20 @@ namespace Archeus.Battle.Presentation.Recipes
             return true;
         }
 
+        private bool TimelineContainsTrack(TrackAsset track)
+        {
+            if (timeline == null)
+                return false;
+
+            foreach (TrackAsset outputTrack in timeline.GetOutputTracks())
+            {
+                if (outputTrack == track)
+                    return true;
+            }
+
+            return false;
+        }
+
 #if UNITY_EDITOR
         private void OnValidate()
         {

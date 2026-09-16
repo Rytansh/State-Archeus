@@ -17,7 +17,7 @@ MonoBehaviour:
   - EventType: 0
     Phase: 0
     OwnerType: 1
-    VMProgramID: TestAOEAttack
+    VMProgramID: TestAttack
     Priority: 0
     Conditions: []
   - EventType: 13
