@@ -66,7 +66,7 @@ namespace Archeus.Battle.Presentation.Factory
         )
         {
             factQueue.Add(fact);
-            LogFact(in fact);
+            //LogFact(in fact);
         }
 
         private static PresentationFactMetadata ConstructFactMetadata(

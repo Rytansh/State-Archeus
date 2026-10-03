@@ -45,14 +45,6 @@ namespace Archeus.Battle.Systems.Presentation
             while (bridge.TryConsume(out PresentationFact fact))
             {
                 inbox.Add(fact);
-
-                Logging.Info(
-                    LogCategory.Presentation,
-                    $"Imported simulation fact: "
-                        + $"Seq={fact.FactMetadata.Sequence} "
-                        + $"Type={fact.FactType} "
-                        + $"Target={fact.FactMetadata.TargetRuntimeID}"
-                );
             }
         }
     }

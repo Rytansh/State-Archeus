@@ -8,17 +8,17 @@ namespace Archeus.Battle.Systems.Setup
 {
     [DisableAutoCreation]
     [UpdateInGroup(typeof(BattleSpawningGroup))]
-    public partial struct BattleSpawnCompletionSystem : ISystem
+    public partial struct BattleCreationCompletionSystem : ISystem
     {
         public void OnUpdate(ref SystemState state)
         {
-            bool spawnRequestsExist =
+            bool creationRequestsExist =
                 SystemAPI
                     .QueryBuilder()
-                    .WithAll<SpawnCharacterRequest>()
+                    .WithAll<CreateCharacterRequest>()
                     .Build()
                     .CalculateEntityCount() > 0;
-            if (spawnRequestsExist)
+            if (creationRequestsExist)
                 return;
 
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);

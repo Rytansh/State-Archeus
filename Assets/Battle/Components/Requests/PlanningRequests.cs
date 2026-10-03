@@ -6,10 +6,14 @@ namespace Archeus.Battle.Components.Requests
     {
         public Entity Player;
     }
+
     public struct PlaceCardRequest : IComponentData
     {
         public Entity Player;
+        public Entity CardToPlace;
+        public FieldPosition Position;
     }
+
     public struct PlayActionRequest : IComponentData
     {
         public Entity Player;
@@ -27,5 +31,3 @@ namespace Archeus.Battle.Components.Requests
         public int Direction;
     }
 }
-
-

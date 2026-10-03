@@ -18,8 +18,10 @@ MonoBehaviour:
   - hitIndex: 0
     impacts:
     - impactIndex: 0
-      weight: 0.2
+      weight: 0.5
     - impactIndex: 1
-      weight: 0.2
+      weight: 0.5
+  - hitIndex: 1
+    impacts:
     - impactIndex: 2
-      weight: 0.6
+      weight: 1

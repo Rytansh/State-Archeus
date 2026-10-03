@@ -112,14 +112,6 @@ namespace Archeus.Battle.Systems.Presentation
 
             PresentationExecutionPlanReference planReference =
                 EntityManager.GetComponentObject<PresentationExecutionPlanReference>(planEntity);
-
-            Logging.Info(
-                LogCategory.Presentation,
-                $"[SCHEDULER] Started plan | "
-                    + $"Action={planReference.Plan.ActionExecutionID} | "
-                    + $"Sequence={planReference.Plan.FirstSequence}"
-                    + $"..{planReference.Plan.LastSequence}"
-            );
         }
 
         private void FinishCurrentPlan(bool success)
@@ -128,13 +120,6 @@ namespace Archeus.Battle.Systems.Presentation
                 EntityManager.GetComponentObject<PresentationExecutionPlanReference>(
                     currentPlanEntity
                 );
-
-            Logging.Info(
-                LogCategory.Presentation,
-                $"[SCHEDULER] "
-                    + $"{(success ? "Completed" : "Failed")} plan | "
-                    + $"Action={planReference.Plan.ActionExecutionID}"
-            );
 
             EntityManager.DestroyEntity(currentPlanEntity);
             currentPlanEntity = Entity.Null;

@@ -10,6 +10,7 @@ using Archeus.Battle.Data.Actions;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Factory;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Runtime;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -42,49 +43,52 @@ namespace Archeus.Battle.Systems.Turnflow
                     .WithEntityAccess()
             )
             {
-                var player = request.ValueRO.Player;
+                Entity player = request.ValueRO.Player;
 
                 if (
-                    !SystemAPI.HasComponent<PlayerHand>(player)
-                    || !SystemAPI.HasComponent<RemainingActionPoints>(player)
-                    || !SystemAPI.HasComponent<SelectedTarget>(player)
-                    || !SystemAPI.HasComponent<SelectedCharacter>(player)
-                    || !TryPlanningBattle(ref state, player, out var battle)
+                    !SystemAPI.HasComponent<RemainingActionPoints>(player)
+                    || !SystemAPI.HasBuffer<HandCard>(player)
+                    || !SystemAPI.HasBuffer<FieldCard>(player)
+                    || !TryPlanningBattle(ref state, player, out Entity battle)
                 )
                 {
                     ecb.DestroyEntity(requestEntity);
                     continue;
                 }
 
-                SelectedTarget selectedTarget = SystemAPI.GetComponent<SelectedTarget>(player);
+                RefRW<RemainingActionPoints> remainingAP =
+                    SystemAPI.GetComponentRW<RemainingActionPoints>(player);
 
-                if (selectedTarget.Value == Entity.Null)
+                if (remainingAP.ValueRO.Value <= 0)
                 {
                     ecb.DestroyEntity(requestEntity);
                     continue;
                 }
 
-                SelectedCharacter selectedCharacter = SystemAPI.GetComponent<SelectedCharacter>(
-                    player
+                DynamicBuffer<HandCard> hand = SystemAPI.GetBuffer<HandCard>(player);
+
+                DynamicBuffer<FieldCard> field = SystemAPI.GetBuffer<FieldCard>(player);
+
+                bool deployed = CardZoneResolver.TryDeployCard(
+                    request.ValueRO.CardToPlace,
+                    request.ValueRO.Position,
+                    ref hand,
+                    ref field
                 );
 
-                if (selectedCharacter.Value == Entity.Null)
+                if (deployed)
                 {
-                    ecb.DestroyEntity(requestEntity);
-                    continue;
+                    remainingAP.ValueRW.Value--;
+
+                    Logging.Info(
+                        LogCategory.Combat,
+                        $"Card deployed to {request.ValueRO.Position}."
+                    );
                 }
-
-                DynamicBuffer<ActionExecutionRequest> actionRequests =
-                    SystemAPI.GetBuffer<ActionExecutionRequest>(battle);
-
-                actionRequests.Add(
-                    new ActionExecutionRequest
-                    {
-                        Source = selectedCharacter.Value,
-                        PrimaryTarget = selectedTarget.Value,
-                        CharacterAction = CharacterActionType.NormalAttack,
-                    }
-                );
+                else
+                {
+                    Logging.Warn(LogCategory.Combat, "This slot is occupied!");
+                }
 
                 ecb.DestroyEntity(requestEntity);
             }

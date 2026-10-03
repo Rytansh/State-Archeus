@@ -40,14 +40,6 @@ namespace Archeus.Battle.Systems.Presentation
                     PresentationFact fact = factBuffer[i];
 
                     bridge.Publish(fact);
-
-                    Logging.Info(
-                        LogCategory.Simulation,
-                        $"Exported simulation fact: "
-                            + $"Seq={fact.FactMetadata.Sequence} "
-                            + $"Type={fact.FactType} "
-                            + $"Target={fact.FactMetadata.TargetRuntimeID}"
-                    );
                 }
 
                 factBuffer.Clear();

@@ -4,9 +4,21 @@ namespace Archeus.Gameplay.Stats
 {
     public enum BattleType
     {
-        Tactical,
-        Flexible,
-        Magical,
-        Powerful
+        Sin,
+        Law,
+        Truth,
+        Life,
+        Fate,
+        Balance,
+        Void,
+        Time,
+    }
+
+    public enum BattleTypePool
+    {
+        Structure,
+        Character,
+        Principle,
+        Abstraction,
     }
 }

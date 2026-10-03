@@ -56,9 +56,9 @@ namespace Archeus.Game.Bootstrap
                 typeof(BattlePhaseTransitionSystem),
                 typeof(BattleCreationSystem),
                 typeof(BattleInitialisationSystem),
-                typeof(BattleSpawnRequestSystem),
-                typeof(CharacterSpawnSystem),
-                typeof(BattleSpawnCompletionSystem),
+                typeof(BattleCreationRequestSystem),
+                typeof(CharacterCreationSystem),
+                typeof(BattleCreationCompletionSystem),
                 typeof(BattleStartSystem),
                 // Turn flow
                 typeof(TurnStartSystem),
@@ -73,6 +73,9 @@ namespace Archeus.Game.Bootstrap
                 typeof(ActionExecutionSystem),
                 // Presentation
                 typeof(PresentationFactExportSystem),
+                typeof(PresentationSnapshotExportSystem),
+                typeof(PresentationUpdateExportSystem),
+                typeof(PresentationStateRecoverySystem),
             };
 
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(

@@ -42,25 +42,11 @@ namespace Archeus.Battle.Presentation.Presenters
                 return;
             }
 
-            Logging.Info(
-                LogCategory.Presentation,
-                $"[REGISTRY] Found {presenters.Length} CharacterPresenters."
-            );
-
             for (int i = 0; i < presenters.Length; i++)
             {
                 CharacterPresenter presenter = presenters[i];
 
-                if (registry.Register(presenter))
-                {
-                    Logging.Info(
-                        LogCategory.Presentation,
-                        $"[REGISTRY] Registered "
-                            + $"{presenter.gameObject.name} "
-                            + $"as RuntimeID={presenter.RuntimeID}"
-                    );
-                }
-                else
+                if (!registry.Register(presenter))
                 {
                     Logging.Warn(
                         LogCategory.Presentation,

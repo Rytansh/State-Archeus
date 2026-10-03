@@ -43,7 +43,6 @@ namespace Archeus.Battle.Systems.Setup
                     // INITIALISE PLAYER FUNCTIONS
                     ecb.AddComponent(player, new MaxActionPoints { Value = 4 });
                     ecb.AddComponent(player, new RemainingActionPoints { Value = 4 });
-                    ecb.AddComponent(player, new PlayerHand { Current = 0 });
                     ecb.AddComponent(player, new MaxHandSize { Value = 4 });
                     ecb.AddComponent(player, new SelectedTarget { Value = Entity.Null });
                 }

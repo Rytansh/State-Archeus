@@ -149,13 +149,6 @@ namespace Archeus.Battle.Systems.Presentation
             }
 
             stubRecipeRegistered = true;
-
-            Logging.Info(
-                LogCategory.Presentation,
-                $"[PLAN COMPILER] Registered temporary recipe "
-                    + $"'{provider.Recipe.name}' "
-                    + "for ActionDefinitionID=0."
-            );
         }
 
         private static PresentationFact[] CopyFacts(DynamicBuffer<PresentationAction> actions)
@@ -194,17 +187,7 @@ namespace Archeus.Battle.Systems.Presentation
                 );
                 EntityManager.AddComponent<PresentationPacketCompiledTag>(pending.PacketEntity);
 
-                Logging.Info(
-                    LogCategory.Presentation,
-                    $"[PLAN COMPILER] Compiled | "
-                        + $"Battle={pending.Plan.BattleRuntimeID} | "
-                        + $"Action={pending.Plan.ActionExecutionID} | "
-                        + $"Sequence={pending.Plan.FirstSequence}"
-                        + $"..{pending.Plan.LastSequence} | "
-                        + $"Impacts={pending.Plan.Impacts.Length} | "
-                        + $"Fragments={pending.Plan.Fragments.Length}"
-                );
-                LogCompiledPlan(pending.Plan);
+                //LogCompiledPlan(pending.Plan);
             }
         }
 

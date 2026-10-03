@@ -1,3 +1,4 @@
+using Archeus.Battle.Presentation.Views;
 using UnityEngine;
 
 namespace Archeus.Battle.Presentation.Presenters
@@ -19,6 +20,9 @@ namespace Archeus.Battle.Presentation.Presenters
         [SerializeField]
         private Transform vfxOrigin;
 
+        [SerializeField]
+        private CharacterHealthView healthBar;
+
         public uint RuntimeID => runtimeID;
 
         public Animator Animator => animator;
@@ -28,6 +32,7 @@ namespace Archeus.Battle.Presentation.Presenters
         public Transform HitCenter => hitCenter != null ? hitCenter : VisualRoot;
 
         public Transform VFXOrigin => vfxOrigin != null ? vfxOrigin : VisualRoot;
+        public CharacterHealthView HealthBar => healthBar;
 
         public void Initialise(uint newRuntimeID)
         {

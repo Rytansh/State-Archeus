@@ -101,7 +101,7 @@ namespace Archeus.Battle.Systems.Presentation
                 selectedTarget.ValueRW.Value = validTargets[currentIndex];
                 Logging.Info(
                     LogCategory.Presentation,
-                    $"Selected target is {selectedTarget.ValueRW.Value.Index}"
+                    $"Selected target {selectedTarget.ValueRW.Value.Index}"
                 );
 
                 validTargets.Dispose();
@@ -189,7 +189,7 @@ namespace Archeus.Battle.Systems.Presentation
                 selectedTarget.ValueRW.Value = validTargets[currentIndex];
                 Logging.Info(
                     LogCategory.Presentation,
-                    $"Selected character is {selectedTarget.ValueRW.Value.Index}"
+                    $"Selected character {selectedTarget.ValueRW.Value.Index}"
                 );
 
                 validTargets.Dispose();

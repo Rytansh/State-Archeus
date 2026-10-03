@@ -3,12 +3,10 @@ using Unity.Entities;
 
 namespace Archeus.Battle.Components.Requests
 {
-    public struct SpawnCharacterRequest : IComponentData
+    public struct CreateCharacterRequest : IComponentData
     {
         public Entity Battle;
-        public BattleSide Side;
-        public int Slot;
-        public uint CharacterID;
+        public Entity Owner;
+        public uint CharacterDefinitionID;
     }
 }
-

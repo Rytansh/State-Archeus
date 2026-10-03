@@ -158,11 +158,6 @@ public partial struct BattlePresentationAssemblySystem : ISystem
 
             return;
         }
-
-        Logging.Info(
-            LogCategory.Presentation,
-            $"Opened action | Battle={metadata.BattleRuntimeID} | Action={metadata.ActionExecutionID} | Seq={metadata.Sequence}"
-        );
     }
 
     private void AppendFactToAction(
@@ -202,16 +197,6 @@ public partial struct BattlePresentationAssemblySystem : ISystem
             state.EntityManager.GetBuffer<PresentationAction>(packetEntity);
 
         packetFacts.Add(new PresentationAction { Fact = fact });
-
-        Logging.Info(
-            LogCategory.Presentation,
-            $"Appended fact | "
-                + $"Action={metadata.ActionExecutionID} | "
-                + $"Seq={metadata.Sequence} | "
-                + $"Type={fact.FactType} | "
-                + $"Result="
-                + FormatResult(metadata.ActionResultIndex)
-        );
     }
 
     private void SealActionPacket(
@@ -248,17 +233,6 @@ public partial struct BattlePresentationAssemblySystem : ISystem
             state.EntityManager.GetBuffer<PresentationAction>(packetEntity);
 
         openActionPackets.Remove(key);
-
-        Logging.Info(
-            LogCategory.Presentation,
-            $"Sealed action | "
-                + $"Battle={metadata.BattleRuntimeID} | "
-                + $"Action={metadata.ActionExecutionID} | "
-                + $"Facts={packetFacts.Length} | "
-                + $"Sequence="
-                + $"{packet.FirstSequence}"
-                + $"..{packet.LastSequence}"
-        );
     }
 
     private static string FormatResult(ushort actionResultIndex)

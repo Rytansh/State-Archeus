@@ -39,22 +39,30 @@ namespace Archeus.Battle.Presentation.Compiler
             }
 
             facts ??= Array.Empty<PresentationFact>();
-            for (int i = 0; i < facts.Length; i++)
-            {
-                PresentationFact fact = facts[i];
 
-                Logging.Info(
+            if (!recipe.TryValidate(out string recipeError))
+            {
+                Logging.Error(
                     LogCategory.Presentation,
-                    $"[COMPILER SOURCE] "
-                        + $"Fact={i} | "
-                        + $"Seq={fact.FactMetadata.Sequence} | "
-                        + $"RuntimeResult={fact.FactMetadata.ActionResultIndex} | "
-                        + $"Hit={fact.FactMetadata.HitIndex} | "
-                        + $"Type={fact.FactType} | "
-                        + $"Target={fact.FactMetadata.TargetRuntimeID} | "
-                        + $"Damage={fact.FactPayload.HitPayload.Damage}"
+                    $"[COMPILER] Action={packet.ActionExecutionID} "
+                        + $"has an invalid PresentationRecipe: {recipeError}"
                 );
+
+                return default;
             }
+
+            if (!TryValidateHitCoverage(facts, recipe, out string coverageError))
+            {
+                Logging.Error(
+                    LogCategory.Presentation,
+                    $"[COMPILER] Action={packet.ActionExecutionID} "
+                        + $"failed hit coverage validation: "
+                        + $"{coverageError}"
+                );
+
+                return default;
+            }
+
             Dictionary<ushort, List<int>> factsByResult = BuildFactsByHitIndex(facts);
             SortedDictionary<int, List<PresentationFragmentPlan>> fragmentsByImpact = new();
             PresentationHitBinding[] resultBindings = recipe.ResultBindings;
@@ -218,6 +226,53 @@ namespace Archeus.Battle.Presentation.Compiler
                     return false;
                 }
             }
+        }
+
+        private static bool TryValidateHitCoverage(
+            PresentationFact[] sourceFacts,
+            PresentationRecipe recipe,
+            out string error
+        )
+        {
+            HashSet<ushort> mappedHits = new();
+
+            foreach (PresentationHitBinding binding in recipe.ResultBindings)
+            {
+                if (binding == null)
+                    continue;
+
+                mappedHits.Add(binding.HitIndex);
+            }
+
+            for (int i = 0; i < sourceFacts.Length; i++)
+            {
+                PresentationFact fact = sourceFacts[i];
+
+                if (fact.FactType != PresentationFactType.DamageApplied)
+                    continue;
+
+                ushort hitIndex = fact.FactMetadata.HitIndex;
+
+                if (hitIndex == PresentationFactMetadata.NoHit)
+                    continue;
+
+                if (mappedHits.Contains(hitIndex))
+                    continue;
+
+                error =
+                    $"Presentation recipe '{recipe.name}' does not map "
+                    + $"HitIndex={hitIndex}, but Action "
+                    + $"{fact.FactMetadata.ActionExecutionID} produced "
+                    + $"a required presentation fact using that hit. "
+                    + $"FactIndex={i}, "
+                    + $"FactType={fact.FactType}, "
+                    + $"Target={fact.FactMetadata.TargetRuntimeID}.";
+
+                return false;
+            }
+
+            error = null;
+            return true;
         }
 
         private static void FlattenImpactData(

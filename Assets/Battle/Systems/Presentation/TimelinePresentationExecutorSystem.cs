@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using Archeus.Battle.Buffers.Presentation;
 using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Presentation;
+using Archeus.Battle.Presentation.Facts;
 using Archeus.Battle.Presentation.Plans;
 using Archeus.Battle.Presentation.Presenters;
 using Archeus.Battle.Presentation.Recipes;
+using Archeus.Battle.Presentation.State;
 using Archeus.Core.Debugging;
 using Unity.Entities;
 using UnityEngine.Playables;
@@ -18,21 +20,18 @@ namespace Archeus.Battle.Systems.Presentation
     public partial class TimelinePresentationExecutorSystem : SystemBase
     {
         private EntityQuery runnerQuery;
-
         private EntityQuery presentationRegistryQuery;
-
         private BattlePresentationRunner runner;
-
         private DamageFactPresenter damageFactPresenter;
-
+        private CharacterHealthPresenter characterHealthPresenter;
+        private CharacterVisibleStateReconciliation characterReconciler;
+        private EntityQuery characterStateQuery;
         private PresentationRegistry presentationRegistry;
-
         private Entity activePlanEntity;
 
         private bool playbackStopped;
 
         private readonly Queue<int> pendingImpactIndices = new();
-
         private readonly HashSet<int> consumedImpactIndices = new();
 
         protected override void OnCreate()
@@ -44,6 +43,13 @@ namespace Archeus.Battle.Systems.Presentation
             presentationRegistryQuery = GetEntityQuery(
                 ComponentType.ReadOnly<PresentationRegistryReference>()
             );
+            characterStateQuery = GetEntityQuery(
+                ComponentType.ReadOnly<CharacterPresentationState>(),
+                ComponentType.ReadWrite<CharacterVisibleState>()
+            );
+
+            characterHealthPresenter = new CharacterHealthPresenter();
+            characterReconciler = new CharacterVisibleStateReconciliation();
 
             RequireForUpdate(runnerQuery);
 
@@ -219,10 +225,6 @@ namespace Archeus.Battle.Systems.Presentation
                 return;
             }
 
-            /*
-             * Prevent duplicate Timeline markers from
-             * consuming the same impact twice.
-             */
             if (!consumedImpactIndices.Add(impactIndex))
             {
                 Logging.Warn(
@@ -254,12 +256,6 @@ namespace Archeus.Battle.Systems.Presentation
                 break;
             }
 
-            /*
-             * This is allowed.
-             *
-             * An authored marker may exist even when this
-             * particular execution produced no facts for it.
-             */
             if (!matchingCue.HasValue)
             {
                 Logging.Info(
@@ -275,17 +271,6 @@ namespace Archeus.Battle.Systems.Presentation
 
             PresentationImpactCue cue = matchingCue.Value;
 
-            Logging.Info(
-                LogCategory.Presentation,
-                $"[IMPACT] Consuming | "
-                    + $"Action="
-                    + $"{plan.ActionExecutionID} | "
-                    + $"Impact={impactIndex} | "
-                    + $"Fragments="
-                    + $"{cue.FragmentCount} | "
-                    + $"Fallback={isFallback}"
-            );
-
             int end = cue.FragmentStart + cue.FragmentCount;
 
             for (int fragmentIndex = cue.FragmentStart; fragmentIndex < end; fragmentIndex++)
@@ -295,6 +280,16 @@ namespace Archeus.Battle.Systems.Presentation
                 PresentationFact fact = plan.SourceFacts[fragment.SourceFactIndex];
 
                 uint targetRuntimeID = fact.FactMetadata.TargetRuntimeID;
+
+                if (fact.FactType == PresentationFactType.DamageApplied)
+                {
+                    characterHealthPresenter.TryPresentDamage(
+                        EntityManager,
+                        characterStateQuery,
+                        targetRuntimeID,
+                        fragment.DisplayValue
+                    );
+                }
 
                 if (
                     !presentationRegistry.TryGet(
@@ -322,19 +317,6 @@ namespace Archeus.Battle.Systems.Presentation
                 }
 
                 damageFactPresenter.Present(in fact, fragment.DisplayValue, targetPresenter);
-
-                Logging.Info(
-                    LogCategory.Presentation,
-                    $"[IMPACT FRAGMENT] "
-                        + $"Impact="
-                        + $"{impactIndex} | "
-                        + $"Target="
-                        + $"{targetRuntimeID} | "
-                        + $"Value="
-                        + $"{fragment.DisplayValue} | "
-                        + $"Type="
-                        + $"{fact.FactType}"
-                );
             }
         }
 
@@ -357,27 +339,11 @@ namespace Archeus.Battle.Systems.Presentation
                 return;
             }
 
-            /*
-             * Stage 1:
-             * Give the runner the Timeline asset WITHOUT
-             * starting playback yet.
-             */
             if (!runner.TryPrepare(plan))
             {
-                /*
-                 * The reusable director may currently be
-                 * occupied.
-                 *
-                 * Retry on another update.
-                 */
                 return;
             }
 
-            /*
-             * Stage 2:
-             * Resolve semantic Timeline roles into actual
-             * runtime presentation objects.
-             */
             if (!TryBindTimelineRoles(plan, runner.PrimaryDirector))
             {
                 ClearTimelineBindings(plan, runner.PrimaryDirector);
@@ -393,10 +359,6 @@ namespace Archeus.Battle.Systems.Presentation
             consumedImpactIndices.Clear();
             pendingImpactIndices.Clear();
 
-            /*
-             * Stage 3:
-             * Only now is the Timeline safe to play.
-             */
             if (!runner.PlayPrepared())
             {
                 ClearTimelineBindings(plan, runner.PrimaryDirector);
@@ -514,11 +476,6 @@ namespace Archeus.Battle.Systems.Presentation
 
         private void OnPlaybackStopped(PresentationExecutionPlan plan)
         {
-            /*
-             * Keep Unity callback side-effects tiny.
-             *
-             * ECS state changes happen during OnUpdate.
-             */
             playbackStopped = true;
         }
 
@@ -545,10 +502,12 @@ namespace Archeus.Battle.Systems.Presentation
 
             FallbackConsumeUnconsumedImpacts(plan);
 
-            /*
-             * The reusable director must not retain
-             * bindings to the previous character.
-             */
+            characterReconciler.Reconcile(
+                EntityManager,
+                characterStateQuery,
+                plan.ActionExecutionID
+            );
+
             ClearTimelineBindings(plan, runner.PrimaryDirector);
 
             runner.ResetDirector();

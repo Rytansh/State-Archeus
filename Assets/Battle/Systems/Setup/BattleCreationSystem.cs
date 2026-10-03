@@ -32,42 +32,41 @@ namespace Archeus.Battle.Systems.Setup
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
             foreach (
-                var (request, requestEntity) in SystemAPI
-                    .Query<RefRO<StartBattleRequest>>()
+                var (request, loadout, requestEntity) in SystemAPI
+                    .Query<RefRO<StartBattleRequest>, DynamicBuffer<BattleLoadoutEntry>>()
                     .WithEntityAccess()
             )
             {
                 // BATTLE RELATED CREATION
                 Entity battleEntity = ecb.CreateEntity();
-                DeterministicRNG rng = new DeterministicRNG(request.ValueRO.BattleSeed);
-                ulong BattleID = request.ValueRO.BattleID;
-                AddComponentsToBattle(ref state, ecb, battleEntity, rng, BattleID);
+                InitialiseBattle(ecb, battleEntity, request.ValueRO);
 
                 // PLAYER RELATED CREATION
-                BattleSide allySide = BattleSide.Ally;
-                Entity player = ecb.CreateEntity();
-                AddComponentsToPlayer(ref state, ecb, player, battleEntity, allySide);
+                Entity playerA = ecb.CreateEntity();
+                InitialisePlayer(ecb, playerA, battleEntity, BattleSide.SideA, loadout);
+
+                Entity playerB = ecb.CreateEntity();
+                InitialisePlayer(ecb, playerB, battleEntity, BattleSide.SideB, loadout);
 
                 //DESTROY BATTLE START REQUEST ENTITY
                 ecb.DestroyEntity(requestEntity);
-                Logging.Info(LogCategory.Setup, "Battle created.");
             }
 
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
         }
 
-        private void AddComponentsToBattle(
-            ref SystemState state,
+        private void InitialiseBattle(
             EntityCommandBuffer ecb,
             Entity battle,
-            DeterministicRNG rng,
-            ulong id
+            StartBattleRequest request
         )
         {
+            DeterministicRNG rng = new DeterministicRNG(request.BattleSeed);
+            ulong BattleID = request.BattleID;
             // BATTLE RELATED COMPONENTS / BUFFERS
             ecb.AddComponent<BattleTag>(battle);
-            ecb.AddComponent(battle, new BattleID { Value = id });
+            ecb.AddComponent(battle, new BattleID { Value = BattleID });
             ecb.AddComponent(battle, new BattleRNG { StateA = rng.StateA, StateB = rng.StateB });
             ecb.AddComponent(battle, new BattleState { Phase = BattlePhase.Creating });
             ecb.AddComponent(battle, new BattleRuntimeIDCounter { NextID = 100 });
@@ -75,6 +74,7 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent(battle, new BattleEventGroupIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleActionExecutionCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleOperationIDCounter { NextID = 1 });
+            ecb.AddComponent(battle, new PresentationStateRevision { Value = 0 });
             ecb.AddComponent(
                 battle,
                 new BattleContentRegistry
@@ -98,19 +98,40 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddBuffer<PresentationFact>(battle);
         }
 
-        private void AddComponentsToPlayer(
-            ref SystemState state,
+        private void InitialisePlayer(
             EntityCommandBuffer ecb,
             Entity player,
             Entity battle,
-            BattleSide side
+            BattleSide side,
+            DynamicBuffer<BattleLoadoutEntry> allEntries
         )
         {
-            //PLAYER RELATED COMPONENTS / BUFFERS
-            ecb.AddComponent(player, new PlayerTag { });
+            ecb.AddComponent<PlayerTag>(player);
+
             ecb.AddComponent(player, new OwnedBattle { Battle = battle });
+
             ecb.AddComponent(player, new Team { Side = side });
+
             ecb.AddComponent(player, new SelectedCharacter { Value = Entity.Null });
+
+            ecb.AddBuffer<DeckCard>(player);
+            ecb.AddBuffer<HandCard>(player);
+            ecb.AddBuffer<FieldCard>(player);
+
+            DynamicBuffer<BattleDeckEntry> deck = ecb.AddBuffer<BattleDeckEntry>(player);
+            foreach (BattleLoadoutEntry entry in allEntries)
+            {
+                if (entry.Side == side)
+                {
+                    deck.Add(
+                        new BattleDeckEntry
+                        {
+                            CardDefinitionID = entry.CardDefinitionID,
+                            CardType = entry.CardType,
+                        }
+                    );
+                }
+            }
         }
     }
 }
