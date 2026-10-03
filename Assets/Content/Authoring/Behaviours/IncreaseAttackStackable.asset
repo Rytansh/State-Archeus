@@ -15,11 +15,11 @@ MonoBehaviour:
   ID: IncreaseAttackBelow70Percent
   Triggers:
   - EventType: 14
-    Phase: 0
-    OwnerType: 2
+    Phase: 2
+    OwnerType: 1
     VMProgramID: IncreaseAttack20Percent
     Priority: 0
     Conditions:
     - Type: 0
-      Target: 0
+      Target: 1
       Value: 70

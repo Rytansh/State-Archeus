@@ -1,9 +1,14 @@
-
-namespace Archeus.Battle.Presentation.Commands.Facts
+namespace Archeus.Battle.Presentation.Facts
 {
-    public enum PresentationFactType
+    public enum PresentationFactType : byte
     {
-        Hit,
-        Heal
+        ActionStarted,
+        ActionCompleted,
+
+        DamageApplied,
+        EffectApplied,
+        EffectRemoved,
+
+        EntityKilled,
     }
 }

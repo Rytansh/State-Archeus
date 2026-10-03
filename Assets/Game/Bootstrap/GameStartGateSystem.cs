@@ -1,6 +1,6 @@
+using Archeus.Content.Registries;
 using Unity.Entities;
 using UnityEngine.SceneManagement;
-using Archeus.Content.Registries;
 
 namespace Archeus.Game.Bootstrap
 {
@@ -13,19 +13,14 @@ namespace Archeus.Game.Bootstrap
             if (started)
                 return;
 
-            bool registryExists =
-                SystemAPI.QueryBuilder()
-                    .WithAll<ContentBlobRegistryComponent>()
-                    .Build()
-                    .CalculateEntityCount() > 0;
-
             bool bootstrapComplete =
-                SystemAPI.QueryBuilder()
+                SystemAPI
+                    .QueryBuilder()
                     .WithAll<GameBootstrapCompleteTag>()
                     .Build()
                     .CalculateEntityCount() > 0;
 
-            if (!registryExists || !bootstrapComplete)
+            if (!bootstrapComplete)
                 return;
 
             SceneManager.LoadSceneAsync("MenuScene", LoadSceneMode.Additive);

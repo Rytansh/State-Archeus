@@ -5,12 +5,13 @@ using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Context;
 using Archeus.Core.Debugging;
 using Unity.Entities;
+using Archeus.Battle.Events.Factory;
 
 namespace Archeus.Battle.Events.Resolvers
 {
     public static class EffectApplicationResolvedResolver
     {
-        public static void Resolve(ref BattleContext ctx, BattleEvent evt)
+        public static void Resolve(ref BattleContext ctx, BattleEvent evt, in EventEmissionContext emissionContext)
         {
             //validate effect application and apply mutations
 
@@ -33,27 +34,26 @@ namespace Archeus.Battle.Events.Resolvers
                 Logging.Info(LogCategory.Testing, $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% permanently. This effect has {effectDef.StatModifiers.Length} stat modifiers.");
             }
 
-            ctx.ChainBuffer.Add(new ChainedBattleEvent
+            BattleEvent effectAppliedEvent = new BattleEvent
             {
-                Event = new BattleEvent
+                Type = BattleEventType.EffectApplied,
+                Scope = BattleEventScope.Targeted,
+                Source = evt.Source,
+                Target = evt.Target,
+                Payload = new EventPayload
                 {
-                    Type = BattleEventType.EffectApplied,
-                    Scope = BattleEventScope.Targeted,
-                    Source = evt.Source,
-                    Target = evt.Target,
-                    Payload = new EventPayload
+                    Effect = new EffectPayload
                     {
-                        Effect = new EffectPayload
-                        {
-                            EffectIndex = evt.Payload.Effect.EffectIndex,
-                            Strength = evt.Payload.Effect.Strength,
-                            Duration = evt.Payload.Effect.Duration,
-                            IsPermanent = evt.Payload.Effect.IsPermanent
-                        }
-                    },
-                    StructuralData = evt.StructuralData
-                }
-            });
+                        EffectIndex = evt.Payload.Effect.EffectIndex,
+                        Strength = evt.Payload.Effect.Strength,
+                        Duration = evt.Payload.Effect.Duration,
+                        IsPermanent = evt.Payload.Effect.IsPermanent
+                    }
+                },
+                StructuralData = evt.StructuralData
+            };
+
+            BattleEventEmitter.EmitContinuationEvent(effectAppliedEvent, ref ctx.ChainedEventQueue, in emissionContext);
         }
 
         private static void ApplyEffect(DynamicBuffer<ActiveEffect> effects, BattleEvent evt, StackingBehaviour stackBehaviour)

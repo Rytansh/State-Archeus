@@ -1,14 +1,13 @@
-using UnityEngine;
-using Unity.Entities;
 using Archeus.Core.Debugging;
-using System.Collections.Generic;
+using Unity.Entities;
+using UnityEngine;
 
 namespace Archeus.Game.Bootstrap
 {
     public class RunBootstrap : MonoBehaviour
     {
         public static WorldContext RootContext { get; private set; }
-        private BattleBootstrapEntry bootstrapEntry;
+        private GameBootstrapEntry bootstrapEntry;
 
         [Header("Bootstrap Settings")]
         [Tooltip("Run bootstrap on Awake automatically.")]
@@ -18,19 +17,24 @@ namespace Archeus.Game.Bootstrap
         {
             if (autoRun)
                 Run();
-            
+
             DontDestroyOnLoad(gameObject);
         }
 
         public void Run()
         {
+            bootstrapEntry = new GameBootstrapEntry();
             Logging.DisableCategory(LogCategory.VM);
-            bootstrapEntry = new BattleBootstrapEntry();
-
+            Logging.DisableCategory(LogCategory.RNG);
+            Logging.DisableCategory(LogCategory.Event);
+            Logging.DisableCategory(LogCategory.Setup);
+            //Logging.DisableCategory(LogCategory.Testing);
+            //Logging.DisableCategory(LogCategory.Simulation);
+            //Logging.DisableCategory(LogCategory.Presentation);
             try
             {
                 bootstrapEntry.Initialise();
-                RootContext = bootstrapEntry.getRootContext();
+                RootContext = bootstrapEntry.GetRootContext();
 
                 World ecsWorld = World.DefaultGameObjectInjectionWorld;
 

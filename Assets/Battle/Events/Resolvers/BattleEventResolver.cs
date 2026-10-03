@@ -6,30 +6,30 @@ namespace Archeus.Battle.Events.Resolvers
 {
     public static class BattleEventResolver
     {
-        public static void Resolve(BattleEvent evt, ref BattleContext context)
+        public static void Resolve(BattleEvent evt, ref BattleContext context, in EventEmissionContext emissionContext)
         {
             switch (evt.Type)
             {
                 case BattleEventType.DamageRequested:
-                    DamageRequestResolver.Resolve(ref context, evt);
+                    DamageRequestResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.DamageConfirmed:
-                    DamageConfirmedResolver.Resolve(ref context, evt);
+                    DamageConfirmedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.DamageCalculated:
-                    DamageCalculatedResolver.Resolve(ref context, evt);
+                    DamageCalculatedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.DamageMitigated:
-                    DamageMitigatedResolver.Resolve(ref context, evt);
+                    DamageMitigatedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.DamageResolved:
-                    DamageResolvedResolver.Resolve(ref context, evt);
+                    DamageResolvedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.EffectApplicationRequested:
-                    EffectApplicationRequestedResolver.Resolve(ref context, evt);
+                    EffectApplicationRequestedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.EffectApplicationResolved:
-                    EffectApplicationResolvedResolver.Resolve(ref context, evt);
+                    EffectApplicationResolvedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 default:
                     return;

@@ -5,7 +5,6 @@ namespace Archeus.Core.Debugging
 {
     public static class Logging
     {
-
         // ================================
         // CONFIGURATION
         // ================================
@@ -20,7 +19,8 @@ namespace Archeus.Core.Debugging
             LogCategory.Combat,
             LogCategory.Setup,
             LogCategory.VM,
-            LogCategory.RNG
+            LogCategory.RNG,
+            LogCategory.Content,
         };
 
         private static LogLevel minimumLevel = LogLevel.Info;
@@ -35,7 +35,8 @@ namespace Archeus.Core.Debugging
             { LogCategory.VM, "#FF69B4" },
             { LogCategory.Combat, "#FF4444" },
             { LogCategory.Setup, "#00CED1" },
-            { LogCategory.RNG, "#3800d1" }
+            { LogCategory.RNG, "#3800d1" },
+            { LogCategory.Content, "#fbff00" },
         };
 
         // ================================
@@ -129,14 +130,14 @@ namespace Archeus.Core.Debugging
         VM,
         Combat,
         Setup,
-        RNG
+        RNG,
+        Content,
     }
 
     public enum LogLevel
     {
         Info,
         Warning,
-        Error
+        Error,
     }
-
 }

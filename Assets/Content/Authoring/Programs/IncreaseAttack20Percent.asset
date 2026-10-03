@@ -13,10 +13,13 @@ MonoBehaviour:
   m_Name: IncreaseAttack20Percent
   m_EditorClassIdentifier: 
   ID: IncreaseAttack20Percent
-  Source: 'PushConst -1
+  Source: 'SelectTarget Self
+
+    PushConst -1
 
     PushConst 20
 
-    ApplyEffect IncreaseAttackStackable
+    ApplyEffect
+    IncreaseAttackStackable
 
     End'

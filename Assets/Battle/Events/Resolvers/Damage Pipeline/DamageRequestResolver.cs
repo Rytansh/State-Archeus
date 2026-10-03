@@ -3,12 +3,13 @@ using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Context;
+using Archeus.Battle.Events.Factory;
 
 namespace Archeus.Battle.Events.Resolvers
 {
     public static class DamageRequestResolver
     {
-        public static void Resolve(ref BattleContext ctx, BattleEvent evt)
+        public static void Resolve(ref BattleContext ctx, BattleEvent evt, in EventEmissionContext emissionContext)
         {
             var attacker = evt.Source;
             var target = evt.Target;
@@ -16,9 +17,7 @@ namespace Archeus.Battle.Events.Resolvers
             if (!ctx.StatsLookup.HasComponent(target) || !ctx.StatsLookup.HasComponent(attacker)) return;
             if (!ctx.HealthLookup.HasComponent(target) || !ctx.HealthLookup.HasComponent(attacker)) return;
 
-            ctx.ChainBuffer.Add(new ChainedBattleEvent
-            {
-                Event = new BattleEvent
+            BattleEvent damageConfirmedEvent = new BattleEvent
                 {
                     Type = BattleEventType.DamageConfirmed,
                     Scope = evt.Scope,
@@ -32,8 +31,10 @@ namespace Archeus.Battle.Events.Resolvers
                         }
                     },
                     StructuralData = evt.StructuralData
-                }
-            });
+                };
+
+            BattleEventEmitter.EmitContinuationEvent(damageConfirmedEvent, ref ctx.ChainedEventQueue, in emissionContext);
+
         }
     }
 }

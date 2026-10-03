@@ -1,28 +1,47 @@
 using Archeus.Battle.Buffers.Events;
-using Archeus.Battle.Events.Payloads;
-using Archeus.Core.Debugging;
+using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Data.VM;
+using Archeus.Battle.Events.Context;
+using Archeus.Battle.Events.Factory;
+using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Runtime;
+using Archeus.Core.Debugging;
+using Unity.Collections;
+using Unity.Entities;
 
 namespace Archeus.Battle.VM.Execution
 {
     public static class AbilityInterpreter
     {
         private const int MAX_VM_STEPS = 256;
-        public static void Execute(ref AbilityExecutionFrame frame, ref AbilityExecutionContext context, ref BattleEvent evt)
+
+        public static AbilityExecutionResult Execute(
+            ref AbilityExecutionFrame frame,
+            ref AbilityExecutionContext context,
+            ref BattleEvent evt
+        )
         {
-            int safetyCounter = 0;
             ref var program = ref context.ContentRegistry.Value.AbilityPrograms[frame.ProgramIndex];
 
             while (frame.InstructionPointer < program.Instructions.Length)
             {
-                if (++safetyCounter > MAX_VM_STEPS)
+                if (++frame.StepsExecuted > MAX_VM_STEPS)
                 {
-                    Logging.Info(LogCategory.VM, "VM exceeded maximum instruction count.");
-                    return;
+                    Logging.Warn(LogCategory.VM, "VM exceeded maximum instruction count.");
+
+                    return AbilityExecutionResult.Aborted;
                 }
 
                 ref var instruction = ref program.Instructions[frame.InstructionPointer];
+
+                bool beganGameplayOperation = AbilityInterpreterTooling.TryBeginGameplayOperation(
+                    in instruction,
+                    ref frame,
+                    ref context,
+                    out EventEmissionContext instructionEmissionContext,
+                    out uint operationID
+                );
 
                 switch (instruction.Opcode)
                 {
@@ -41,7 +60,7 @@ namespace Archeus.Battle.VM.Execution
                             0 => stats.Attack,
                             1 => stats.Defense,
                             2 => stats.MaxHealth,
-                            _ => 0
+                            _ => 0,
                         };
                         Push(ref frame, value);
                         break;
@@ -55,7 +74,7 @@ namespace Archeus.Battle.VM.Execution
                             EventValueType.DamageBase => evt.Payload.Damage.BaseDamage,
                             EventValueType.DamageFinal => evt.Payload.Damage.FinalDamage,
                             EventValueType.DamageMultiplier => evt.Payload.Damage.AttackMultiplier,
-                            _ => 0f
+                            _ => 0f,
                         };
 
                         Push(ref frame, value);
@@ -112,6 +131,15 @@ namespace Archeus.Battle.VM.Execution
                                 evt.Payload.Damage.AttackMultiplier = value;
                                 break;
                         }
+
+                        break;
+                    }
+
+                    case AbilityOpcode.SelectTarget:
+                    {
+                        TargetSelectionType type = (TargetSelectionType)instruction.A;
+
+                        AbilityInterpreterTooling.SelectTargets(ref frame, ref context, type);
 
                         break;
                     }
@@ -207,21 +235,29 @@ namespace Archeus.Battle.VM.Execution
                     {
                         float multiplier = Pop(ref frame);
 
-                        EmitEvent(ref context, new BattleEvent
+                        foreach (Entity target in frame.Targets)
                         {
-                            Type = BattleEventType.DamageRequested,
-                            Scope = BattleEventScope.Targeted,
-                            Source = frame.Source,
-                            Target = frame.Target,
-                            Payload = new EventPayload
-                            {
-                                Damage = new DamagePayload
+                            BattleEventEmitter.EmitContinuationEvent(
+                                new BattleEvent
                                 {
-                                    AttackMultiplier = multiplier
-                                }
-                            },
-                            StructuralData = context.EventData
-                        });
+                                    Type = BattleEventType.DamageRequested,
+                                    Scope = BattleEventScope.Targeted,
+                                    Source = frame.Source,
+                                    Target = target,
+
+                                    Payload = new EventPayload
+                                    {
+                                        Damage = new DamagePayload
+                                        {
+                                            AttackMultiplier = multiplier,
+                                        },
+                                    },
+                                },
+                                ref context.ChainedEventQueue,
+                                in instructionEmissionContext
+                            );
+                        }
+
                         break;
                     }
 
@@ -230,34 +266,77 @@ namespace Archeus.Battle.VM.Execution
                         int effectIndex = instruction.A;
 
                         bool isPermanent = false;
-                        
+
                         float strength = Pop(ref frame);
                         int duration = (int)Pop(ref frame);
 
-                        if (duration == -1) {isPermanent = true;}
-
-                        EmitEvent(ref context, new BattleEvent
+                        if (duration == -1)
                         {
-                            Type = BattleEventType.EffectApplicationRequested,
-                            Scope = BattleEventScope.Targeted,
-                            Source = frame.Source,
-                            Target = frame.Target,
-                            Payload = new EventPayload
-                            {
-                                Effect = new EffectPayload
+                            isPermanent = true;
+                        }
+
+                        foreach (Entity target in frame.Targets)
+                        {
+                            BattleEventEmitter.EmitContinuationEvent(
+                                new BattleEvent
                                 {
-                                    EffectIndex = effectIndex,
-                                    Strength = strength,
-                                    Duration = duration,
-                                    IsPermanent = isPermanent
-                                }
-                            },
-                            StructuralData = context.EventData
-                        });
+                                    Type = BattleEventType.EffectApplicationRequested,
+                                    Scope = BattleEventScope.Targeted,
+                                    Source = frame.Source,
+                                    Target = target,
+                                    Payload = new EventPayload
+                                    {
+                                        Effect = new EffectPayload
+                                        {
+                                            EffectIndex = effectIndex,
+                                            Strength = strength,
+                                            Duration = duration,
+                                            IsPermanent = isPermanent,
+                                        },
+                                    },
+                                },
+                                ref context.ChainedEventQueue,
+                                in instructionEmissionContext
+                            );
+                        }
+                        break;
+                    }
+
+                    case AbilityOpcode.CheckTargetHP:
+                    {
+                        foreach (Entity target in frame.Targets)
+                        {
+                            if (target == Entity.Null)
+                            {
+                                Logging.Warn(
+                                    LogCategory.Combat,
+                                    "[CheckTargetHP] Target is Entity.Null."
+                                );
+
+                                break;
+                            }
+
+                            if (!context.CurrentHealthLookup.HasComponent(target))
+                            {
+                                Logging.Warn(
+                                    LogCategory.Combat,
+                                    $"[CheckTargetHP] Entity {target.Index} has no CurrentHealth component."
+                                );
+
+                                break;
+                            }
+
+                            float currentHP = context.CurrentHealthLookup[target].Value;
+
+                            Logging.Info(
+                                LogCategory.Combat,
+                                $"[CheckTargetHP] Entity={target.Index} | CurrentHP={currentHP}"
+                            );
+                        }
 
                         break;
                     }
-                    
+
                     // VM FLOW OPCODES //
                     case AbilityOpcode.Jump:
                     {
@@ -291,19 +370,37 @@ namespace Archeus.Battle.VM.Execution
 
                     case AbilityOpcode.End:
                     {
-                        return;
+                        return AbilityExecutionResult.Completed;
                     }
 
                     // DEFAULT
                     default:
                     {
-                        Logging.Warn(LogCategory.VM, $"Unknown opcode {instruction.Opcode}. Cancelling execution.");
-                        return;
+                        Logging.Warn(
+                            LogCategory.VM,
+                            $"Unknown opcode {instruction.Opcode}. Cancelling execution."
+                        );
+
+                        return AbilityExecutionResult.Aborted;
                     }
                 }
 
                 frame.InstructionPointer++;
+
+                if (beganGameplayOperation)
+                {
+                    Logging.Info(
+                        LogCategory.VM,
+                        $"[VM YIELD] "
+                            + $"Program={frame.ProgramIndex} | "
+                            + $"ResumeIP={frame.InstructionPointer} | "
+                            + $"Operation={operationID}"
+                    );
+
+                    return AbilityExecutionResult.Yielded(operationID);
+                }
             }
+            return AbilityExecutionResult.Completed;
         }
 
         private static void Push(ref AbilityExecutionFrame frame, float value)
@@ -340,14 +437,6 @@ namespace Archeus.Battle.VM.Execution
             }
 
             return frame.Stack[frame.Stack.Length - 1];
-        }
-
-        private static void EmitEvent(ref AbilityExecutionContext context, BattleEvent evt)
-        {
-            context.ChainedEventQueue.Add(new ChainedBattleEvent
-            {
-                Event = evt
-            });
         }
     }
 }

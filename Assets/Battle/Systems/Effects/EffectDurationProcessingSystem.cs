@@ -1,16 +1,17 @@
-using Unity.Entities;
-using Unity.Collections;
+using Archeus.Battle.Buffers.Events;
+using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
-using Archeus.Battle.Buffers.Events;
+using Archeus.Battle.Data.Events;
+using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Systems.Turnflow;
 using Archeus.Core.Debugging;
-using Archeus.Battle.Events.Payloads;
-using Archeus.Battle.Components.Core;
-using Archeus.Battle.Data.Events;
+using Unity.Collections;
+using Unity.Entities;
 
 namespace Archeus.Battle.Systems.Effects
 {
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(TurnEndGroup))]
     [UpdateAfter(typeof(TurnEndSystem))]
     public partial struct EffectDurationProcessingSystem : ISystem
@@ -19,14 +20,25 @@ namespace Archeus.Battle.Systems.Effects
         {
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
-            foreach (var (_, battle) in SystemAPI.Query<RefRO<BattleState>>().WithAll<BattleTag, EffectDurationsProcessingTag>().WithEntityAccess())
+            foreach (
+                var (_, battle) in SystemAPI
+                    .Query<RefRO<BattleState>>()
+                    .WithAll<BattleTag, EffectDurationsProcessingTag>()
+                    .WithEntityAccess()
+            )
             {
-                foreach (var (ownedBattle, effectsBuffer, entity) in SystemAPI.Query<RefRO<OwnedBattle>, DynamicBuffer<ActiveEffect>>().WithEntityAccess())
+                foreach (
+                    var (ownedBattle, effectsBuffer, entity) in SystemAPI
+                        .Query<RefRO<OwnedBattle>, DynamicBuffer<ActiveEffect>>()
+                        .WithEntityAccess()
+                )
                 {
                     if (ownedBattle.ValueRO.Battle != battle)
                         continue;
 
-                    DynamicBuffer<BattleEvent> battleEvents = SystemAPI.GetBuffer<BattleEvent>(battle);
+                    DynamicBuffer<BattleEvent> battleEvents = SystemAPI.GetBuffer<BattleEvent>(
+                        battle
+                    );
                     DynamicBuffer<ActiveEffect> activeEffects = effectsBuffer;
 
                     for (int i = activeEffects.Length - 1; i >= 0; i--)
@@ -35,7 +47,10 @@ namespace Archeus.Battle.Systems.Effects
 
                         if (effect.IsPermanent)
                         {
-                            Logging.Info(LogCategory.Testing,$"Effect {effect.EffectIndex} on entity {entity.Index} is permanent.");
+                            Logging.Info(
+                                LogCategory.Testing,
+                                $"Effect {effect.EffectIndex} on entity {entity.Index} is permanent."
+                            );
                             continue;
                         }
 
@@ -43,31 +58,39 @@ namespace Archeus.Battle.Systems.Effects
 
                         if (effect.RemainingDuration <= 0)
                         {
-                            Logging.Info(LogCategory.Testing, $"Effect {effect.EffectIndex} expired on entity {entity.Index}.");
+                            Logging.Info(
+                                LogCategory.Testing,
+                                $"Effect {effect.EffectIndex} expired on entity {entity.Index}."
+                            );
 
-                            battleEvents.Add(new BattleEvent
-                            {
-                                Type = BattleEventType.EffectExpired,
-                                Scope = BattleEventScope.Targeted,
-                                Source = battle,
-                                Target = entity,
-                                Payload = new EventPayload
+                            battleEvents.Add(
+                                new BattleEvent
                                 {
-                                    Effect = new EffectPayload
+                                    Type = BattleEventType.EffectExpired,
+                                    Scope = BattleEventScope.Targeted,
+                                    Source = battle,
+                                    Target = entity,
+                                    Payload = new EventPayload
                                     {
-                                        EffectIndex = effect.EffectIndex,
-                                        Strength = effect.Strength,
-                                        Duration = 0
-                                    }
+                                        Effect = new EffectPayload
+                                        {
+                                            EffectIndex = effect.EffectIndex,
+                                            Strength = effect.Strength,
+                                            Duration = 0,
+                                        },
+                                    },
                                 }
-                            });
+                            );
 
                             activeEffects.RemoveAt(i);
                             continue;
                         }
                         activeEffects[i] = effect;
 
-                        Logging.Info(LogCategory.Testing,$"Ticked effect {effect.EffectIndex} on entity {entity.Index}. Remaining: {effect.RemainingDuration}");
+                        Logging.Info(
+                            LogCategory.Testing,
+                            $"Ticked effect {effect.EffectIndex} on entity {entity.Index}. Remaining: {effect.RemainingDuration}"
+                        );
                     }
                 }
                 ecb.RemoveComponent<EffectDurationsProcessingTag>(battle);
@@ -78,4 +101,3 @@ namespace Archeus.Battle.Systems.Effects
         }
     }
 }
-

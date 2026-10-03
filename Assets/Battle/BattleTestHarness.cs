@@ -1,24 +1,76 @@
-using UnityEngine;
-using Unity.Entities;
+using Archeus.Battle.Components.Core;
+using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Requests;
 using Archeus.Game.Bootstrap;
+using Unity.Entities;
+using UnityEngine;
 
 public class BattleTestHarness : MonoBehaviour
 {
-    void Start()
+    private void Start()
     {
-        var world = World.DefaultGameObjectInjectionWorld;
-        var em = world.EntityManager;
+        EntityManager world = BattleSimulationBootstrap.SimulationEcsWorld.EntityManager;
 
-        ISeedService seedService = RunBootstrap.RootContext.Resolve<ISeedService>();
+        Entity request = world.CreateEntity();
 
-        var e1 = em.CreateEntity();
-        em.AddComponentData(e1, new StartBattleRequest
-        {
-            BattleID = 1,
-            BattleSeed = 12345678,
-            BattleConfigID = 0
-        });
+        world.AddComponentData(
+            request,
+            new StartBattleRequest
+            {
+                BattleID = 1,
+                BattleSeed = 12345678,
+                BattleConfigID = 0,
+            }
+        );
 
+        DynamicBuffer<BattleLoadoutEntry> loadout = world.AddBuffer<BattleLoadoutEntry>(request);
+
+        // SIDE A
+        loadout.Add(
+            new BattleLoadoutEntry
+            {
+                Side = BattleSide.SideA,
+                CardDefinitionID = StableHash32.HashFromString("C1"),
+                CardType = RuntimeCardType.Character,
+            }
+        );
+
+        loadout.Add(
+            new BattleLoadoutEntry
+            {
+                Side = BattleSide.SideA,
+                CardDefinitionID = StableHash32.HashFromString("C2"),
+                CardType = RuntimeCardType.Character,
+            }
+        );
+
+        // Repeated definitions are completely fine for this test.
+        loadout.Add(
+            new BattleLoadoutEntry
+            {
+                Side = BattleSide.SideA,
+                CardDefinitionID = StableHash32.HashFromString("C1"),
+                CardType = RuntimeCardType.Character,
+            }
+        );
+
+        // SIDE B
+        loadout.Add(
+            new BattleLoadoutEntry
+            {
+                Side = BattleSide.SideB,
+                CardDefinitionID = StableHash32.HashFromString("C2"),
+                CardType = RuntimeCardType.Character,
+            }
+        );
+
+        loadout.Add(
+            new BattleLoadoutEntry
+            {
+                Side = BattleSide.SideB,
+                CardDefinitionID = StableHash32.HashFromString("C1"),
+                CardType = RuntimeCardType.Character,
+            }
+        );
     }
 }

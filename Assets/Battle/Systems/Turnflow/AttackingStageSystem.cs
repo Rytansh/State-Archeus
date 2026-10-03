@@ -1,11 +1,12 @@
-using Unity.Entities;
-using Unity.Collections;
-using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Core;
+using Archeus.Battle.Components.Tags;
 using Archeus.Core.Debugging;
+using Unity.Collections;
+using Unity.Entities;
 
 namespace Archeus.Battle.Systems.Turnflow
 {
+    [DisableAutoCreation]
     [UpdateInGroup(typeof(AttackingStageGroup))]
     public partial struct AttackingStageSystem : ISystem
     {
@@ -13,7 +14,13 @@ namespace Archeus.Battle.Systems.Turnflow
         {
             var ecb = new EntityCommandBuffer(Allocator.Temp);
 
-            foreach (var (battleState, battle) in SystemAPI.Query<RefRO<BattleState>>().WithAll<BattleTag>().WithNone<BattleAttackingCompleteTag>().WithEntityAccess())
+            foreach (
+                var (battleState, battle) in SystemAPI
+                    .Query<RefRO<BattleState>>()
+                    .WithAll<BattleTag>()
+                    .WithNone<BattleAttackingCompleteTag>()
+                    .WithEntityAccess()
+            )
             {
                 if (battleState.ValueRO.Phase != BattlePhase.Attacking)
                     continue;

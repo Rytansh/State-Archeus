@@ -6,38 +6,39 @@ using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Context;
 using Archeus.Battle.Stats;
 using Unity.Entities;
+using Archeus.Battle.Events.Factory;
 
 namespace Archeus.Battle.Events.Resolvers
 {
     public static class DamageConfirmedResolver
     {
-        public static void Resolve(ref BattleContext ctx, BattleEvent evt)
+        public static void Resolve(ref BattleContext ctx, BattleEvent evt, in EventEmissionContext emissionContext)
         {
             Entity attacker = evt.Source;
             Entity target = evt.Target;
 
             float baseDamage = StatResolver.Resolve(attacker, StatType.Attack, ref ctx);
 
-            ctx.ChainBuffer.Add(new ChainedBattleEvent
+            BattleEvent damageCalaculatedEvent = new BattleEvent
             {
-                Event = new BattleEvent
+                Type = BattleEventType.DamageCalculated,
+                Scope = evt.Scope,
+                Source = attacker,
+                Target = target,
+                Payload = new EventPayload
                 {
-                    Type = BattleEventType.DamageCalculated,
-                    Scope = evt.Scope,
-                    Source = attacker,
-                    Target = target,
-                    Payload = new EventPayload
+                    Damage = new DamagePayload
                     {
-                        Damage = new DamagePayload
-                        {
-                            AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
-                            BaseDamage = baseDamage,
-                            FinalDamage = baseDamage
-                        }
-                    },
-                    StructuralData = evt.StructuralData
-                }
-            });
+                        AttackMultiplier = evt.Payload.Damage.AttackMultiplier,
+                        BaseDamage = baseDamage,
+                        FinalDamage = baseDamage
+                    }
+                },
+                StructuralData = evt.StructuralData
+            };
+
+            BattleEventEmitter.EmitContinuationEvent(damageCalaculatedEvent, ref ctx.ChainedEventQueue, in emissionContext);
+
         }
     }
 }

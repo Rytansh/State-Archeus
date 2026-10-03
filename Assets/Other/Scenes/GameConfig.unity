@@ -176,6 +176,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0c20c832a6119ed4f8a1949eae422770, type: 2}
   - {fileID: 11400000, guid: 0a487133ad0ea1f4faac84ebab1fe5f3, type: 2}
   - {fileID: 11400000, guid: 5dcb9bee5916d2a45b67786aba5cc04c, type: 2}
+  - {fileID: 11400000, guid: 6181a99d49d2eae4793e24f992180090, type: 2}
   EffectDefinitions:
   - {fileID: 11400000, guid: aef25d164352722418b1dfd603e49212, type: 2}
   - {fileID: 11400000, guid: 3bef2ec9ccca139478c4ca85f0d92ddb, type: 2}

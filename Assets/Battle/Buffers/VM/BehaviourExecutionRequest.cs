@@ -14,6 +14,6 @@ namespace Archeus.Battle.Buffers.VM
         public Entity Source;
         public Entity Target;
 
-        public EventStructuralData StructuralData;
+        public EventEmissionContext EmissionContext;
     }
 }

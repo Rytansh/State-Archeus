@@ -7,10 +7,15 @@ namespace Archeus.Battle.Components.Ownership
         public BattleSide Side;
     }
 
-    public enum BattleSide
+    public enum BattleSide : byte
+    {
+        SideA,
+        SideB,
+    }
+
+    public enum SideDescription : byte
     {
         Ally,
-        Enemy
+        Enemy,
     }
-    
 }
