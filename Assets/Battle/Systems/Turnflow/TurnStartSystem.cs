@@ -20,8 +20,8 @@ namespace Archeus.Battle.Systems.Turnflow
         {
             var ecb = new EntityCommandBuffer(Allocator.Temp);
             foreach (
-                var (battleState, turnCounter, battle) in SystemAPI
-                    .Query<RefRO<BattleState>, RefRW<TurnCounter>>()
+                var (battleState, turnCounter, activePlayer, battle) in SystemAPI
+                    .Query<RefRO<BattleState>, RefRW<TurnCounter>, RefRO<ActiveTurnPlayer>>()
                     .WithAll<BattleTag>()
                     .WithNone<BattleTurnStartCompleteTag>()
                     .WithEntityAccess()
@@ -29,6 +29,17 @@ namespace Archeus.Battle.Systems.Turnflow
             {
                 if (battleState.ValueRO.Phase != BattlePhase.TurnStart)
                     continue;
+
+                Entity player = activePlayer.ValueRO.Player;
+                if (player == Entity.Null || !state.EntityManager.Exists(player))
+                {
+                    Logging.Error(
+                        LogCategory.Combat,
+                        $"Battle {battle.Index} entered TurnStart without a valid active player."
+                    );
+
+                    continue;
+                }
 
                 turnCounter.ValueRW.CurrentTurn++;
                 Logging.Info(
@@ -53,7 +64,7 @@ namespace Archeus.Battle.Systems.Turnflow
                 );
 
                 foreach (
-                    var (ownedBattle, remainingAP, maxAP, player) in SystemAPI
+                    var (ownedBattle, remainingAP, maxAP, _) in SystemAPI
                         .Query<
                             RefRO<OwnedBattle>,
                             RefRW<RemainingActionPoints>,

@@ -9,6 +9,7 @@ using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Components.Turns;
 using Archeus.Content.Registries;
 using Archeus.Core.Debugging;
 using Archeus.Game.Bootstrap;
@@ -75,6 +76,7 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent(battle, new BattleActionExecutionCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleOperationIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new PresentationStateRevision { Value = 0 });
+            ecb.AddComponent(battle, new ActiveTurnPlayer { });
             ecb.AddComponent(
                 battle,
                 new BattleContentRegistry

@@ -1,4 +1,7 @@
+using Archeus.Battle.Buffers.Input;
+using Archeus.Battle.Components.Tags;
 using Archeus.Core.Debugging;
+using Archeus.Game.Input;
 using Unity.Entities;
 using UnityEngine;
 
@@ -7,6 +10,7 @@ namespace Archeus.Game.Bootstrap
     public class RunBootstrap : MonoBehaviour
     {
         public static WorldContext RootContext { get; private set; }
+        public static BattleInputGateway InputGateway { get; private set; }
         private GameBootstrapEntry bootstrapEntry;
 
         [Header("Bootstrap Settings")]

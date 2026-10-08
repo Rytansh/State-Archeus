@@ -7,6 +7,11 @@ public partial class BattleSimulationGroup : ComponentSystemGroup { }
 
 [DisableAutoCreation]
 [UpdateInGroup(typeof(BattleSimulationGroup))]
+[UpdateBefore(typeof(TurnFlowGroup))]
+public partial class BattleInputGroup : ComponentSystemGroup { }
+
+[DisableAutoCreation]
+[UpdateInGroup(typeof(BattleSimulationGroup))]
 public partial class TurnFlowGroup : ComponentSystemGroup { }
 
 [DisableAutoCreation]

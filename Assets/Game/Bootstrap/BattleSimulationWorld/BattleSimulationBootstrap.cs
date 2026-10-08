@@ -3,6 +3,7 @@ using Archeus.Battle.Systems.Actions;
 using Archeus.Battle.Systems.Cards;
 using Archeus.Battle.Systems.Effects;
 using Archeus.Battle.Systems.Events;
+using Archeus.Battle.Systems.Input;
 using Archeus.Battle.Systems.Presentation;
 using Archeus.Battle.Systems.Setup;
 using Archeus.Battle.Systems.Turnflow;
@@ -38,13 +39,14 @@ namespace Archeus.Game.Bootstrap
                 // Content and assets
                 typeof(BattleContentHandlingSystem),
                 typeof(ContentLookupSystem),
-                // Battle heirarchy
+                // System group initialisation
                 typeof(BattleRootGroup),
                 typeof(BattleSetupGroup),
                 typeof(BattleCreationGroup),
                 typeof(BattleInitialisationGroup),
                 typeof(BattleSpawningGroup),
                 typeof(BattleSimulationGroup),
+                typeof(BattleInputGroup),
                 typeof(TurnFlowGroup),
                 typeof(TurnStartGroup),
                 typeof(DrawingStageGroup),
@@ -76,6 +78,8 @@ namespace Archeus.Game.Bootstrap
                 typeof(PresentationSnapshotExportSystem),
                 typeof(PresentationUpdateExportSystem),
                 typeof(PresentationStateRecoverySystem),
+                // Input
+                typeof(BattleInputRoutingSystem),
             };
 
             DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(

@@ -1,5 +1,7 @@
+using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Archeus.Battle.Presentation.Presenters
 {
@@ -11,18 +13,32 @@ namespace Archeus.Battle.Presentation.Presenters
         [SerializeField]
         private TMP_Text definitionIDText;
 
+        [SerializeField]
+        private Button button;
+
         private uint currentRuntimeID;
+        private bool hasCard;
 
         public uint RuntimeID => currentRuntimeID;
+
+        public event Action<uint> Clicked;
+
+        private void Awake()
+        {
+            if (button != null)
+            {
+                button.onClick.AddListener(HandleClicked);
+            }
+
+            Hide();
+        }
 
         public void Show(uint runtimeID, uint definitionID)
         {
             currentRuntimeID = runtimeID;
+            hasCard = true;
 
-            if (!gameObject.activeSelf)
-            {
-                gameObject.SetActive(true);
-            }
+            gameObject.SetActive(true);
 
             if (runtimeIDText != null)
             {
@@ -38,28 +54,19 @@ namespace Archeus.Battle.Presentation.Presenters
         public void Hide()
         {
             currentRuntimeID = 0;
+            hasCard = false;
 
-            if (gameObject.activeSelf)
-            {
-                gameObject.SetActive(false);
-            }
+            gameObject.SetActive(false);
         }
 
-        private void Awake()
+        private void HandleClicked()
         {
-            if (runtimeIDText == null)
+            if (!hasCard)
             {
-                Debug.LogError($"{name}: HandCardView has no Runtime ID TMP reference assigned.");
+                return;
             }
 
-            if (definitionIDText == null)
-            {
-                Debug.LogError(
-                    $"{name}: HandCardView has no Definition ID TMP reference assigned."
-                );
-            }
-
-            Hide();
+            Clicked?.Invoke(currentRuntimeID);
         }
     }
 }
