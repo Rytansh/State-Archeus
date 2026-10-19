@@ -14,8 +14,8 @@ public static class AutoSceneStart
         if (state != PlayModeStateChange.ExitingEditMode)
             return;
 
-        EditorSceneManager.playModeStartScene =
-            AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Other/Scenes/BootstrapScene.unity");
+        EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(
+            "Assets/Scenes/BootstrapScene.unity"
+        );
     }
 }
-

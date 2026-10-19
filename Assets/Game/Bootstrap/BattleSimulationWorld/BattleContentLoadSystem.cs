@@ -18,7 +18,7 @@ namespace Archeus.Game.Bootstrap
             {
                 var sceneGuid = SceneSystem.GetSceneGUID(
                     ref state,
-                    "Assets/Other/Scenes/GameConfig.unity"
+                    "Assets/Scenes/GameConfig.unity"
                 );
 
                 gameConfigSceneEntity = SceneSystem.LoadSceneAsync(state.WorldUnmanaged, sceneGuid);
