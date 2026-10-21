@@ -203,7 +203,6 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         blob.ID = StableHash32.HashFromString(def.ID);
         blob.Rarity = (byte)def.Rarity;
         blob.BattleType = (byte)def.BattleType;
-        blob.CharacterType = (byte)def.CharacterType;
         blob.Speciality = (byte)def.Speciality;
 
         ref var stats = ref blob.CharacterBlobBaseStats;
@@ -213,13 +212,12 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         stats.Defense = def.CharacterBaseStats.Defense;
         stats.CritDMG = def.CharacterBaseStats.CritDMG;
         stats.CritRATE = def.CharacterBaseStats.CritRATE;
-        stats.Reactivity = def.CharacterBaseStats.Reactivity;
-        stats.SustainPOWER = def.CharacterBaseStats.SustainPOWER;
-        stats.MagicalDMGBonus = def.CharacterBaseStats.MagicalDMGBonus;
-        stats.PowerfulDMGBonus = def.CharacterBaseStats.PowerfulDMGBonus;
-        stats.TacticalDMGBonus = def.CharacterBaseStats.TacticalDMGBonus;
-        stats.FlexibleDMGBonus = def.CharacterBaseStats.FlexibleDMGBonus;
         stats.DOTDMGBonus = def.CharacterBaseStats.DOTDMGBonus;
+        stats.SustainPOWER = def.CharacterBaseStats.SustainPOWER;
+        stats.Authority = def.CharacterBaseStats.Authority;
+        stats.Stability = def.CharacterBaseStats.Stability;
+        stats.Reactivity = def.CharacterBaseStats.Reactivity;
+        stats.Observation = def.CharacterBaseStats.Observation;
         stats.ALLDMGBonus = def.CharacterBaseStats.ALLDMGBonus;
 
         blob.NormalAttackID = StableHash32.HashFromString(def.NormalAttackID);

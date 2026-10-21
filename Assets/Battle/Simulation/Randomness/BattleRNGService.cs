@@ -79,4 +79,16 @@ public static class BattleRNGService
 
         return result;
     }
+
+    public static bool RollBool(ref BattleRNG battleRNG)
+    {
+        DeterministicRNG rng = new DeterministicRNG(battleRNG.StateA, battleRNG.StateB);
+
+        bool result = rng.NextBool();
+
+        battleRNG.StateA = rng.StateA;
+        battleRNG.StateB = rng.StateB;
+
+        return result;
+    }
 }

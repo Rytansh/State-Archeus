@@ -57,7 +57,6 @@ namespace Archeus.Game.Bootstrap
                 // Battle setup
                 typeof(BattlePhaseTransitionSystem),
                 typeof(BattleCreationSystem),
-                typeof(BattleInitialisationSystem),
                 typeof(BattleCreationRequestSystem),
                 typeof(CharacterCreationSystem),
                 typeof(BattleCreationCompletionSystem),

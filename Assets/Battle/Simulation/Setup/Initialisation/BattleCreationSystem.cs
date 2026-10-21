@@ -11,7 +11,6 @@ using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
 using Archeus.Content.Registries;
-using Archeus.Core.Debugging;
 using Archeus.Game.Bootstrap;
 using Unity.Collections;
 using Unity.Entities;
@@ -33,42 +32,82 @@ namespace Archeus.Battle.Systems.Setup
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
             foreach (
-                var (request, loadout, requestEntity) in SystemAPI
-                    .Query<RefRO<StartBattleRequest>, DynamicBuffer<BattleLoadoutEntry>>()
+                var (request, players, cards, requestEntity) in SystemAPI
+                    .Query<
+                        RefRO<StartBattleRequest>,
+                        DynamicBuffer<BattlePlayerEntry>,
+                        DynamicBuffer<PlayerDeckEntry>
+                    >()
                     .WithEntityAccess()
             )
             {
-                // BATTLE RELATED CREATION
+                if (!CheckIfPlayerDataValid(players))
+                {
+                    //throw an error etc
+                    continue;
+                }
+
+                if (!CheckIfCardOwnersValid(players, cards))
+                {
+                    //throw an error etc
+                    continue;
+                }
+
+                BattleRNG battleRNG = InitialiseRNG(request.ValueRO);
+
+                bool lowerIDGetsSideA = BattleRNGService.RollBool(ref battleRNG);
+
+                ulong lowerID =
+                    players[0].PlayerID < players[1].PlayerID
+                        ? players[0].PlayerID
+                        : players[1].PlayerID;
+
                 Entity battleEntity = ecb.CreateEntity();
-                InitialiseBattle(ecb, battleEntity, request.ValueRO);
 
-                // PLAYER RELATED CREATION
-                Entity playerA = ecb.CreateEntity();
-                InitialisePlayer(ecb, playerA, battleEntity, BattleSide.SideA, loadout);
+                AddComponentsToBattle(ecb, battleEntity, request.ValueRO, battleRNG);
 
-                Entity playerB = ecb.CreateEntity();
-                InitialisePlayer(ecb, playerB, battleEntity, BattleSide.SideB, loadout);
+                DynamicBuffer<BattlePlayerReference> battlePlayers =
+                    ecb.AddBuffer<BattlePlayerReference>(battleEntity);
 
-                //DESTROY BATTLE START REQUEST ENTITY
-                ecb.DestroyEntity(requestEntity);
+                foreach (BattlePlayerEntry entry in players)
+                {
+                    bool isLowerID = entry.PlayerID == lowerID;
+
+                    BattleSide side =
+                        isLowerID == lowerIDGetsSideA ? BattleSide.SideA : BattleSide.SideB;
+
+                    Entity player = ecb.CreateEntity();
+
+                    AddComponentsToPlayer(ecb, player, battleEntity, entry.PlayerID, side);
+
+                    battlePlayers.Add(new BattlePlayerReference { Player = player });
+                }
+
+                ecb.RemoveComponent<StartBattleRequest>(requestEntity);
+
+                ecb.AddComponent(
+                    requestEntity,
+                    new InitialRosterConstructionRequest { Battle = battleEntity }
+                );
+
+                ecb.AddComponent<BattleInitialisationCompleteTag>(battleEntity);
             }
 
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
         }
 
-        private void InitialiseBattle(
+        private void AddComponentsToBattle(
             EntityCommandBuffer ecb,
             Entity battle,
-            StartBattleRequest request
+            StartBattleRequest request,
+            BattleRNG battleRNG
         )
         {
-            DeterministicRNG rng = new DeterministicRNG(request.BattleSeed);
-            ulong BattleID = request.BattleID;
             // BATTLE RELATED COMPONENTS / BUFFERS
             ecb.AddComponent<BattleTag>(battle);
-            ecb.AddComponent(battle, new BattleID { Value = BattleID });
-            ecb.AddComponent(battle, new BattleRNG { StateA = rng.StateA, StateB = rng.StateB });
+            ecb.AddComponent(battle, new BattleID { Value = request.BattleID });
+            ecb.AddComponent(battle, battleRNG);
             ecb.AddComponent(battle, new BattleState { Phase = BattlePhase.Creating });
             ecb.AddComponent(battle, new BattleRuntimeIDCounter { NextID = 100 });
             ecb.AddComponent(battle, new BattleEventFrameIDCounter { NextID = 1 });
@@ -77,6 +116,7 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent(battle, new BattleOperationIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new PresentationStateRevision { Value = 0 });
             ecb.AddComponent(battle, new ActiveTurnPlayer { });
+            ecb.AddComponent(battle, new TurnCounter { CurrentTurn = 0 });
             ecb.AddComponent(
                 battle,
                 new BattleContentRegistry
@@ -100,15 +140,17 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddBuffer<PresentationFact>(battle);
         }
 
-        private void InitialisePlayer(
+        private void AddComponentsToPlayer(
             EntityCommandBuffer ecb,
             Entity player,
             Entity battle,
-            BattleSide side,
-            DynamicBuffer<BattleLoadoutEntry> allEntries
+            ulong playerID,
+            BattleSide side
         )
         {
             ecb.AddComponent<PlayerTag>(player);
+
+            ecb.AddComponent(player, new BattlePlayerIdentity { PlayerID = playerID });
 
             ecb.AddComponent(player, new OwnedBattle { Battle = battle });
 
@@ -116,24 +158,69 @@ namespace Archeus.Battle.Systems.Setup
 
             ecb.AddComponent(player, new SelectedCharacter { Value = Entity.Null });
 
+            ecb.AddComponent(player, new MaxActionPoints { Value = 4 });
+            ecb.AddComponent(player, new RemainingActionPoints { Value = 4 });
+            ecb.AddComponent(player, new MaxHandSize { Value = 4 });
+            ecb.AddComponent(player, new SelectedTarget { Value = Entity.Null });
+
             ecb.AddBuffer<DeckCard>(player);
             ecb.AddBuffer<HandCard>(player);
             ecb.AddBuffer<FieldCard>(player);
+        }
 
-            DynamicBuffer<BattleDeckEntry> deck = ecb.AddBuffer<BattleDeckEntry>(player);
-            foreach (BattleLoadoutEntry entry in allEntries)
+        private BattleRNG InitialiseRNG(StartBattleRequest request)
+        {
+            DeterministicRNG initialRNG = new DeterministicRNG(request.BattleSeed);
+
+            BattleRNG battleRNG = new BattleRNG
             {
-                if (entry.Side == side)
+                StateA = initialRNG.StateA,
+                StateB = initialRNG.StateB,
+            };
+
+            return battleRNG;
+        }
+
+        private static bool CheckIfPlayerDataValid(DynamicBuffer<BattlePlayerEntry> players)
+        {
+            if (players.Length == 0)
+                return false;
+
+            for (int i = 0; i < players.Length; i++)
+            {
+                for (int j = i + 1; j < players.Length; j++)
                 {
-                    deck.Add(
-                        new BattleDeckEntry
-                        {
-                            CardDefinitionID = entry.CardDefinitionID,
-                            CardType = entry.CardType,
-                        }
-                    );
+                    if (players[i].PlayerID == players[j].PlayerID)
+                        return false;
                 }
             }
+
+            return true;
+        }
+
+        private static bool CheckIfCardOwnersValid(
+            DynamicBuffer<BattlePlayerEntry> players,
+            DynamicBuffer<PlayerDeckEntry> cards
+        )
+        {
+            foreach (PlayerDeckEntry card in cards)
+            {
+                bool ownerFound = false;
+
+                foreach (BattlePlayerEntry player in players)
+                {
+                    if (card.PlayerID == player.PlayerID)
+                    {
+                        ownerFound = true;
+                        break;
+                    }
+                }
+
+                if (!ownerFound)
+                    return false;
+            }
+
+            return true;
         }
     }
 }

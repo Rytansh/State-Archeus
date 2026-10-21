@@ -1,5 +1,4 @@
 using Archeus.Battle.Components.Core;
-using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Requests;
 using Archeus.Game.Bootstrap;
 using Unity.Entities;
@@ -13,6 +12,7 @@ public class BattleTestHarness : MonoBehaviour
 
         Entity request = world.CreateEntity();
 
+        // BATTLE REQUEST
         world.AddComponentData(
             request,
             new StartBattleRequest
@@ -23,51 +23,71 @@ public class BattleTestHarness : MonoBehaviour
             }
         );
 
-        DynamicBuffer<BattleLoadoutEntry> loadout = world.AddBuffer<BattleLoadoutEntry>(request);
+        // PLAYER CONFIGURATIONS
+        DynamicBuffer<BattlePlayerEntry> players = world.AddBuffer<BattlePlayerEntry>(request);
 
-        // SIDE A
-        loadout.Add(
-            new BattleLoadoutEntry
+        players.Add(
+            new BattlePlayerEntry
             {
-                Side = BattleSide.SideA,
+                PlayerID = 1001,
+                LeadCharacterDefinitionID = StableHash32.HashFromString("C1"),
+            }
+        );
+
+        players.Add(
+            new BattlePlayerEntry
+            {
+                PlayerID = 1002,
+                LeadCharacterDefinitionID = StableHash32.HashFromString("C2"),
+            }
+        );
+
+        // PLAYER DECK CONFIGURATIONS
+        DynamicBuffer<PlayerDeckEntry> deck = world.AddBuffer<PlayerDeckEntry>(request);
+
+        // PLAYER 1001
+        deck.Add(
+            new PlayerDeckEntry
+            {
+                PlayerID = 1001,
                 CardDefinitionID = StableHash32.HashFromString("C1"),
                 CardType = RuntimeCardType.Character,
             }
         );
 
-        loadout.Add(
-            new BattleLoadoutEntry
+        deck.Add(
+            new PlayerDeckEntry
             {
-                Side = BattleSide.SideA,
+                PlayerID = 1001,
                 CardDefinitionID = StableHash32.HashFromString("C2"),
                 CardType = RuntimeCardType.Character,
             }
         );
 
-        // Repeated definitions are completely fine for this test.
-        loadout.Add(
-            new BattleLoadoutEntry
+        // Repeated definitions are permitted in this test fixture.
+        deck.Add(
+            new PlayerDeckEntry
             {
-                Side = BattleSide.SideA,
+                PlayerID = 1001,
                 CardDefinitionID = StableHash32.HashFromString("C1"),
                 CardType = RuntimeCardType.Character,
             }
         );
 
-        // SIDE B
-        loadout.Add(
-            new BattleLoadoutEntry
+        // PLAYER 1002
+        deck.Add(
+            new PlayerDeckEntry
             {
-                Side = BattleSide.SideB,
+                PlayerID = 1002,
                 CardDefinitionID = StableHash32.HashFromString("C2"),
                 CardType = RuntimeCardType.Character,
             }
         );
 
-        loadout.Add(
-            new BattleLoadoutEntry
+        deck.Add(
+            new PlayerDeckEntry
             {
-                Side = BattleSide.SideB,
+                PlayerID = 1002,
                 CardDefinitionID = StableHash32.HashFromString("C1"),
                 CardType = RuntimeCardType.Character,
             }

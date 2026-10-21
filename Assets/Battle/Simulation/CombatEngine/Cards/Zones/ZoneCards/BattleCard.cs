@@ -32,13 +32,6 @@ public struct BattleDeckEntry : IBufferElementData
     public RuntimeCardType CardType;
 }
 
-public struct BattleLoadoutEntry : IBufferElementData
-{
-    public BattleSide Side;
-    public uint CardDefinitionID;
-    public RuntimeCardType CardType;
-}
-
 public enum FieldPosition : byte
 {
     Lead,
