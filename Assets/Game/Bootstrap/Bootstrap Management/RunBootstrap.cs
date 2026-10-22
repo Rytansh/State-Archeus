@@ -28,13 +28,13 @@ namespace Archeus.Game.Bootstrap
         public void Run()
         {
             bootstrapEntry = new GameBootstrapEntry();
-            Logging.DisableCategory(LogCategory.VM);
-            Logging.DisableCategory(LogCategory.RNG);
-            Logging.DisableCategory(LogCategory.Event);
-            Logging.DisableCategory(LogCategory.Setup);
+            //Logging.DisableCategory(LogCategory.VM);
+            //Logging.DisableCategory(LogCategory.RNG);
+            //Logging.DisableCategory(LogCategory.Event);
+            //Logging.DisableCategory(LogCategory.Setup);
             //Logging.DisableCategory(LogCategory.Testing);
             //Logging.DisableCategory(LogCategory.Simulation);
-            //Logging.DisableCategory(LogCategory.Presentation);
+            Logging.DisableCategory(LogCategory.Presentation);
             try
             {
                 bootstrapEntry.Initialise();

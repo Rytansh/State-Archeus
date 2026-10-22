@@ -36,6 +36,7 @@ namespace Archeus.Content.Blobs
         public float Reactivity;
         public float Stability;
         public float Observation;
+        public float Initiative;
 
         public float ALLDMGBonus;
     }

@@ -16,7 +16,6 @@ MonoBehaviour:
   Name: Mei
   Rarity: 0
   BattleType: 3
-  CharacterType: 0
   Speciality: 0
   CharacterBaseStats:
     MaxHealth: 1000
@@ -24,13 +23,13 @@ MonoBehaviour:
     Defense: 0
     CritDMG: 100
     CritRATE: 50
-    Reactivity: 534
     SustainPOWER: 0
-    MagicalDMGBonus: 0
-    PowerfulDMGBonus: 0
-    TacticalDMGBonus: 0
-    FlexibleDMGBonus: 0
     DOTDMGBonus: 0
+    Authority: 0
+    Reactivity: 0
+    Stability: 0
+    Observation: 0
+    Initiative: 100
     ALLDMGBonus: 0
   NormalAttackID: 
   SuperchargedAttackID: 

@@ -40,7 +40,7 @@ namespace Archeus.Battle.Systems.Presentation
             playerQuery = GetEntityQuery(
                 ComponentType.ReadOnly<PlayerTag>(),
                 ComponentType.ReadOnly<OwnedBattle>(),
-                ComponentType.ReadOnly<Team>(),
+                ComponentType.ReadOnly<BattleSideAssignment>(),
                 ComponentType.ReadOnly<MaxHandSize>(),
                 ComponentType.ReadOnly<DeckCard>(),
                 ComponentType.ReadOnly<HandCard>(),
@@ -183,7 +183,9 @@ namespace Archeus.Battle.Systems.Presentation
 
                 playersInBattle++;
 
-                Team team = EntityManager.GetComponentData<Team>(player);
+                BattleSideAssignment team = EntityManager.GetComponentData<BattleSideAssignment>(
+                    player
+                );
 
                 RemainingActionPoints remainingActionPoints =
                     EntityManager.GetComponentData<RemainingActionPoints>(player);
@@ -273,7 +275,7 @@ namespace Archeus.Battle.Systems.Presentation
             return true;
         }
 
-        private bool TryAddHandState(in Team team, in MaxHandSize maxHandSize)
+        private bool TryAddHandState(in BattleSideAssignment team, in MaxHandSize maxHandSize)
         {
             if (!projectedHandSides.Add(team.Side))
             {
@@ -414,7 +416,7 @@ namespace Archeus.Battle.Systems.Presentation
             if (
                 !EntityManager.Exists(character)
                 || !EntityManager.HasComponent<CardRuntimeID>(character)
-                || !EntityManager.HasComponent<CharacterStats>(character)
+                || !EntityManager.HasComponent<CharacterRuntimeStatBaseline>(character)
                 || !EntityManager.HasComponent<CurrentHealth>(character)
             )
             {
@@ -423,7 +425,8 @@ namespace Archeus.Battle.Systems.Presentation
 
             CardRuntimeID runtimeID = EntityManager.GetComponentData<CardRuntimeID>(character);
 
-            CharacterStats stats = EntityManager.GetComponentData<CharacterStats>(character);
+            CharacterRuntimeStatBaseline stats =
+                EntityManager.GetComponentData<CharacterRuntimeStatBaseline>(character);
 
             CurrentHealth currentHealth = EntityManager.GetComponentData<CurrentHealth>(character);
 

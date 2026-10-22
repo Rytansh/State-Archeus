@@ -13,12 +13,12 @@ namespace Archeus.Battle.VM.Execution
     public struct AbilityExecutionContext
     {
         public DynamicBuffer<ChainedBattleEvent> ChainedEventQueue;
-        public ComponentLookup<CharacterStats> CharacterStatsLookup;
+        public ComponentLookup<CharacterRuntimeStatBaseline> CharacterStatsLookup;
         public DynamicBuffer<ActionExecutionState> ActionExecutionStates;
         public RefRW<BattleOperationIDCounter> OperationCounter;
 
         public DynamicBuffer<BattleParticipant> BattleParticipants;
-        public ComponentLookup<Team> TeamLookup;
+        public ComponentLookup<BattleSideAssignment> TeamLookup;
         public ComponentLookup<CurrentHealth> CurrentHealthLookup;
 
         public BlobAssetReference<ContentBlobRegistry> ContentRegistry;

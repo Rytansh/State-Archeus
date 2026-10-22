@@ -23,41 +23,10 @@ namespace Archeus.Battle.Systems.Setup
             {
                 switch (battleState.ValueRO.Phase)
                 {
-                    case BattlePhase.Creating:
-                        if (SystemAPI.HasComponent<BattleInitialisationCompleteTag>(battle))
-                        {
-                            ecb.RemoveComponent<BattleInitialisationCompleteTag>(battle);
-                            battleState.ValueRW.Phase = BattlePhase.Initialising;
-                        }
-                        break;
-
-                    case BattlePhase.Initialising:
-                        if (SystemAPI.HasComponent<BattleSpawnRequestsIssuedTag>(battle))
-                        {
-                            ecb.RemoveComponent<BattleSpawnRequestsIssuedTag>(battle);
-                            battleState.ValueRW.Phase = BattlePhase.Spawning;
-                        }
-                        break;
-
-                    case BattlePhase.Spawning:
-                        if (SystemAPI.HasComponent<BattleSpawningCompleteTag>(battle))
-                        {
-                            ecb.RemoveComponent<BattleSpawningCompleteTag>(battle);
-                            battleState.ValueRW.Phase = BattlePhase.WaitingForBattleReadySignal;
-                        }
-                        break;
-
-                    case BattlePhase.WaitingForBattleReadySignal:
+                    case BattlePhase.Setup:
                         if (SystemAPI.HasComponent<BattleReadyTag>(battle))
                         {
                             ecb.RemoveComponent<BattleReadyTag>(battle);
-                            battleState.ValueRW.Phase = BattlePhase.BattleReady;
-                        }
-                        break;
-                    case BattlePhase.BattleReady:
-                        if (SystemAPI.HasComponent<BattleTurnStartTag>(battle))
-                        {
-                            ecb.RemoveComponent<BattleTurnStartTag>(battle);
                             battleState.ValueRW.Phase = BattlePhase.TurnStart;
                         }
                         break;

@@ -27,9 +27,9 @@ namespace Archeus.Battle.Events.Context
         public RefRW<PresentationSequenceCounter> PresentationSequenceCounter;
 
         // Entity-indexed runtime data
-        public ComponentLookup<CharacterStats> StatsLookup;
+        public ComponentLookup<CharacterRuntimeStatBaseline> StatsLookup;
         public ComponentLookup<CurrentHealth> HealthLookup;
-        public ComponentLookup<Team> TeamLookup;
+        public ComponentLookup<BattleSideAssignment> TeamLookup;
         public ComponentLookup<CardRuntimeID> CardRuntimeIDLookup;
 
         public BufferLookup<ActiveEffect> EffectLookup;

@@ -89,8 +89,6 @@ namespace Archeus.Battle.Systems.Setup
                     requestEntity,
                     new InitialRosterConstructionRequest { Battle = battleEntity }
                 );
-
-                ecb.AddComponent<BattleInitialisationCompleteTag>(battleEntity);
             }
 
             ecb.Playback(state.EntityManager);
@@ -108,14 +106,13 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent<BattleTag>(battle);
             ecb.AddComponent(battle, new BattleID { Value = request.BattleID });
             ecb.AddComponent(battle, battleRNG);
-            ecb.AddComponent(battle, new BattleState { Phase = BattlePhase.Creating });
+            ecb.AddComponent(battle, new BattleState { Phase = BattlePhase.Setup });
             ecb.AddComponent(battle, new BattleRuntimeIDCounter { NextID = 100 });
             ecb.AddComponent(battle, new BattleEventFrameIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleEventGroupIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleActionExecutionCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleOperationIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new PresentationStateRevision { Value = 0 });
-            ecb.AddComponent(battle, new ActiveTurnPlayer { });
             ecb.AddComponent(battle, new TurnCounter { CurrentTurn = 0 });
             ecb.AddComponent(
                 battle,
@@ -151,17 +148,14 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent<PlayerTag>(player);
 
             ecb.AddComponent(player, new BattlePlayerIdentity { PlayerID = playerID });
-
             ecb.AddComponent(player, new OwnedBattle { Battle = battle });
+            ecb.AddComponent(player, new BattleSideAssignment { Side = side });
 
-            ecb.AddComponent(player, new Team { Side = side });
-
-            ecb.AddComponent(player, new SelectedCharacter { Value = Entity.Null });
+            ecb.AddComponent(player, new LeadCharacter { Value = Entity.Null });
 
             ecb.AddComponent(player, new MaxActionPoints { Value = 4 });
             ecb.AddComponent(player, new RemainingActionPoints { Value = 4 });
             ecb.AddComponent(player, new MaxHandSize { Value = 4 });
-            ecb.AddComponent(player, new SelectedTarget { Value = Entity.Null });
 
             ecb.AddBuffer<DeckCard>(player);
             ecb.AddBuffer<HandCard>(player);

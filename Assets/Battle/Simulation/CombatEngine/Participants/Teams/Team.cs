@@ -2,7 +2,7 @@ using Unity.Entities;
 
 namespace Archeus.Battle.Components.Ownership
 {
-    public struct Team : IComponentData
+    public struct BattleSideAssignment : IComponentData
     {
         public BattleSide Side;
     }

@@ -16,21 +16,20 @@ MonoBehaviour:
   Name: Kazuko
   Rarity: 1
   BattleType: 2
-  CharacterType: 0
   Speciality: 2
   CharacterBaseStats:
     MaxHealth: 1000
     Attack: 50
     Defense: 0
-    CritDMG: 345
-    CritRATE: 2
-    Reactivity: 533
-    SustainPOWER: 43
-    MagicalDMGBonus: 0
-    PowerfulDMGBonus: 0
-    TacticalDMGBonus: 0
-    FlexibleDMGBonus: 0
+    CritDMG: 50
+    CritRATE: 100
+    SustainPOWER: 0
     DOTDMGBonus: 0
+    Authority: 0
+    Reactivity: 0
+    Stability: 0
+    Observation: 0
+    Initiative: 50
     ALLDMGBonus: 0
   NormalAttackID: 
   SuperchargedAttackID: 

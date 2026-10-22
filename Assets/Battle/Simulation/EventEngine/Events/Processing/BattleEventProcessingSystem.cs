@@ -27,7 +27,7 @@ namespace Archeus.Battle.Systems.Events
     {
         private const int MAX_EXECUTIONS = 10000;
 
-        private ComponentLookup<CharacterStats> characterStatsLookup;
+        private ComponentLookup<CharacterRuntimeStatBaseline> characterStatsLookup;
         private ComponentLookup<CurrentHealth> characterHPLookup;
         private ComponentLookup<BattleRNG> battleRNGLookup;
         private ComponentLookup<CardRuntimeID> cardRuntimeIDLookup;
@@ -36,18 +36,18 @@ namespace Archeus.Battle.Systems.Events
         private BufferLookup<ActiveEffect> activeEffectsLookup;
         private BufferLookup<BattleParticipant> participantLookup;
 
-        private ComponentLookup<Team> teamLookup;
+        private ComponentLookup<BattleSideAssignment> teamLookup;
 
         public void OnCreate(ref SystemState state)
         {
-            characterStatsLookup = state.GetComponentLookup<CharacterStats>(true);
+            characterStatsLookup = state.GetComponentLookup<CharacterRuntimeStatBaseline>(true);
             characterHPLookup = state.GetComponentLookup<CurrentHealth>();
             battleRNGLookup = state.GetComponentLookup<BattleRNG>();
             cardRuntimeIDLookup = state.GetComponentLookup<CardRuntimeID>(true);
             behaviourStateLookup = state.GetBufferLookup<BehaviourRuntimeState>();
             activeEffectsLookup = state.GetBufferLookup<ActiveEffect>();
             participantLookup = state.GetBufferLookup<BattleParticipant>();
-            teamLookup = state.GetComponentLookup<Team>();
+            teamLookup = state.GetComponentLookup<BattleSideAssignment>();
         }
 
         public void OnUpdate(ref SystemState state)

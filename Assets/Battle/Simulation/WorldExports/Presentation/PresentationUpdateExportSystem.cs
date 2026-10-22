@@ -48,7 +48,7 @@ namespace Archeus.Battle.Systems.Presentation
             playerQuery = GetEntityQuery(
                 ComponentType.ReadOnly<PlayerTag>(),
                 ComponentType.ReadOnly<OwnedBattle>(),
-                ComponentType.ReadOnly<Team>(),
+                ComponentType.ReadOnly<BattleSideAssignment>(),
                 ComponentType.ReadOnly<RemainingActionPoints>(),
                 ComponentType.ReadOnly<MaxHandSize>(),
                 ComponentType.ReadOnly<DeckCard>(),
@@ -298,7 +298,7 @@ namespace Archeus.Battle.Systems.Presentation
             if (
                 !EntityManager.Exists(character)
                 || !EntityManager.HasComponent<CardRuntimeID>(character)
-                || !EntityManager.HasComponent<CharacterStats>(character)
+                || !EntityManager.HasComponent<CharacterRuntimeStatBaseline>(character)
                 || !EntityManager.HasComponent<CurrentHealth>(character)
             )
             {
@@ -306,7 +306,8 @@ namespace Archeus.Battle.Systems.Presentation
             }
 
             CardRuntimeID runtimeID = EntityManager.GetComponentData<CardRuntimeID>(character);
-            CharacterStats stats = EntityManager.GetComponentData<CharacterStats>(character);
+            CharacterRuntimeStatBaseline stats =
+                EntityManager.GetComponentData<CharacterRuntimeStatBaseline>(character);
             CurrentHealth health = EntityManager.GetComponentData<CurrentHealth>(character);
 
             state = PresentationStateBuilder.BuildCharacter(in runtimeID, in stats, in health);
@@ -407,7 +408,9 @@ namespace Archeus.Battle.Systems.Presentation
                 if (ownedBattle.Battle != battle)
                     continue;
 
-                Team team = EntityManager.GetComponentData<Team>(player);
+                BattleSideAssignment team = EntityManager.GetComponentData<BattleSideAssignment>(
+                    player
+                );
 
                 RemainingActionPoints remainingActionPoints =
                     EntityManager.GetComponentData<RemainingActionPoints>(player);

@@ -156,7 +156,7 @@ namespace Archeus.Battle.Systems.Input
 
             foreach (
                 var (ownedBattle, team, entity) in SystemAPI
-                    .Query<RefRO<OwnedBattle>, RefRO<Team>>()
+                    .Query<RefRO<OwnedBattle>, RefRO<BattleSideAssignment>>()
                     .WithAll<PlayerTag>()
                     .WithEntityAccess()
             )

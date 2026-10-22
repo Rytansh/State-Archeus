@@ -1,6 +1,5 @@
 using System;
 using Archeus.Battle.Systems.Actions;
-using Archeus.Battle.Systems.Cards;
 using Archeus.Battle.Systems.Effects;
 using Archeus.Battle.Systems.Events;
 using Archeus.Battle.Systems.Input;
@@ -57,9 +56,8 @@ namespace Archeus.Game.Bootstrap
                 // Battle setup
                 typeof(BattlePhaseTransitionSystem),
                 typeof(BattleCreationSystem),
-                typeof(BattleCreationRequestSystem),
-                typeof(CharacterCreationSystem),
-                typeof(BattleCreationCompletionSystem),
+                typeof(RosterInitialisationSystem),
+                typeof(BattleReadinessSystem),
                 typeof(BattleStartSystem),
                 // Turn flow
                 typeof(TurnStartSystem),
@@ -68,7 +66,6 @@ namespace Archeus.Game.Bootstrap
                 typeof(AttackingStageSystem),
                 typeof(TurnEndSystem),
                 // Combat
-                typeof(TargetSelectionSystem),
                 typeof(BattleEventProcessingSystem),
                 typeof(EffectDurationProcessingSystem),
                 typeof(ActionExecutionSystem),

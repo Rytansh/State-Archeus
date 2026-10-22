@@ -218,6 +218,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
         stats.Stability = def.CharacterBaseStats.Stability;
         stats.Reactivity = def.CharacterBaseStats.Reactivity;
         stats.Observation = def.CharacterBaseStats.Observation;
+        stats.Initiative = def.CharacterBaseStats.Initiative;
         stats.ALLDMGBonus = def.CharacterBaseStats.ALLDMGBonus;
 
         blob.NormalAttackID = StableHash32.HashFromString(def.NormalAttackID);

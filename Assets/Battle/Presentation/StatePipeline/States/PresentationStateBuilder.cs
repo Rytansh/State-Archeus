@@ -23,7 +23,7 @@ namespace Archeus.Battle.Presentation.State
         }
 
         public static PlayerPresentationState BuildPlayer(
-            in Team team,
+            in BattleSideAssignment team,
             in RemainingActionPoints remainingActionPoints
         )
         {
@@ -36,7 +36,7 @@ namespace Archeus.Battle.Presentation.State
 
         public static CharacterPresentationState BuildCharacter(
             in CardRuntimeID runtimeID,
-            in CharacterStats stats,
+            in CharacterRuntimeStatBaseline stats,
             in CurrentHealth currentHealth
         )
         {
@@ -52,7 +52,10 @@ namespace Archeus.Battle.Presentation.State
             };
         }
 
-        public static HandPresentationState BuildHand(in Team team, in MaxHandSize maxHandSize)
+        public static HandPresentationState BuildHand(
+            in BattleSideAssignment team,
+            in MaxHandSize maxHandSize
+        )
         {
             return new HandPresentationState { Side = team.Side, MaxSize = maxHandSize.Value };
         }

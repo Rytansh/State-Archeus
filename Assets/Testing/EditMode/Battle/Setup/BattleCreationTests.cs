@@ -79,9 +79,9 @@ namespace Archeus.Testing.Battle.Setup
 
             Assert.That(entities.GetComponentData<OwnedBattle>(player2).Battle, Is.EqualTo(battle));
 
-            BattleSide side1 = entities.GetComponentData<Team>(player1).Side;
+            BattleSide side1 = entities.GetComponentData<BattleSideAssignment>(player1).Side;
 
-            BattleSide side2 = entities.GetComponentData<Team>(player2).Side;
+            BattleSide side2 = entities.GetComponentData<BattleSideAssignment>(player2).Side;
 
             Assert.That(
                 new[] { side1, side2 },
@@ -343,14 +343,10 @@ namespace Archeus.Testing.Battle.Setup
 
             Assert.That(
                 entities.GetComponentData<BattleState>(battle).Phase,
-                Is.EqualTo(BattlePhase.Creating)
+                Is.EqualTo(BattlePhase.Setup)
             );
 
             Assert.That(entities.GetComponentData<TurnCounter>(battle).CurrentTurn, Is.EqualTo(0));
-
-            Assert.That(entities.HasComponent<ActiveTurnPlayer>(battle), Is.True);
-
-            Assert.That(entities.HasComponent<BattleInitialisationCompleteTag>(battle), Is.True);
 
             // Side assignment consumes one RNG roll.
             DeterministicRNG generator = new DeterministicRNG(TestSeed);
@@ -540,7 +536,7 @@ namespace Archeus.Testing.Battle.Setup
         {
             Entity player = GetPlayerByID(battle, playerID);
 
-            return entities.GetComponentData<Team>(player).Side;
+            return entities.GetComponentData<BattleSideAssignment>(player).Side;
         }
 
         private void AssertBattlePlayerIDs(Entity battle, ulong expectedID1, ulong expectedID2)
