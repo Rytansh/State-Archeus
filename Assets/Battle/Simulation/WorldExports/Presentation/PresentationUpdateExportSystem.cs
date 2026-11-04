@@ -39,6 +39,8 @@ namespace Archeus.Battle.Systems.Presentation
         private EntityQuery bridgeQuery;
         private EntityQuery playerQuery;
 
+        public void ForgetBattle(ulong battleID) => projectionCaches.Remove(battleID);
+
         protected override void OnCreate()
         {
             bridgeQuery = GetEntityQuery(

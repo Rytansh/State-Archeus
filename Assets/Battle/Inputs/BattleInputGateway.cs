@@ -1,5 +1,9 @@
 using Archeus.Battle.Buffers.Input;
+using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
+using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Snapshots;
+using Unity.Collections;
 using Unity.Entities;
 
 namespace Archeus.Game.Input
@@ -73,6 +77,26 @@ namespace Archeus.Game.Input
             );
         }
 
+        public void RequestEndPlanning(ulong battleID, BattleSide side) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.EndPlanning,
+                }
+            );
+
+        public void RequestRevertStage(ulong battleID, BattleSide side) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.RevertStage,
+                }
+            );
+
         private void Enqueue(BattleInputCommand command)
         {
             if (
@@ -85,6 +109,22 @@ namespace Archeus.Game.Input
             }
 
             command.Sequence = nextSequence++;
+
+            // Capture the current input fence at enqueue time. A delayed command from an abandoned
+            // stage/revert generation must not mutate the freshly restored battle.
+            using (
+                var query = entityManager.CreateEntityQuery(
+                    ComponentType.ReadOnly<BattleTag>(),
+                    ComponentType.ReadOnly<BattleID>(),
+                    ComponentType.ReadOnly<StageSnapshotStatus>()
+                )
+            )
+            using (NativeArray<Entity> battles = query.ToEntityArray(Allocator.Temp))
+                foreach (Entity battle in battles)
+                    if (entityManager.GetComponentData<BattleID>(battle).Value == command.BattleID)
+                        command.StageRevision = entityManager
+                            .GetComponentData<StageSnapshotStatus>(battle)
+                            .Revision;
 
             DynamicBuffer<BattleInputCommand> buffer = entityManager.GetBuffer<BattleInputCommand>(
                 inbox

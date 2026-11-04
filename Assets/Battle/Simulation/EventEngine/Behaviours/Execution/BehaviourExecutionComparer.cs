@@ -12,8 +12,9 @@ namespace Archeus.Battle.VM.Execution
             if (priorityCompare != 0)
                 return priorityCompare;
 
-            // COMPARE OWNER ENTITY INDEX
-            int ownerCompare = a.Owner.Index.CompareTo(b.Owner.Index);
+            // Raw Entity indices can change when rollback recreates an entity. Card runtime
+            // identity survives restoration and therefore must determine passive ordering.
+            int ownerCompare = a.OwnerRuntimeID.CompareTo(b.OwnerRuntimeID);
             if (ownerCompare != 0)
                 return ownerCompare;
 

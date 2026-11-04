@@ -1,8 +1,11 @@
 using Archeus.Battle.Buffers.Input;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
+using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Input;
+using Archeus.Battle.Snapshots;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -31,6 +34,19 @@ namespace Archeus.Battle.Systems.Input
             {
                 for (int i = 0; i < commands.Length; i++)
                 {
+                    // Reversion wins over every other command for this battle in this batch.
+                    // This prevents a queued placement/commit from executing after its revert.
+                    bool abandoned = false;
+                    for (int j = 0; j < commands.Length; j++)
+                        if (
+                            commands[j].BattleID == commands[i].BattleID
+                            && commands[j].Type == BattleInputCommandType.RevertStage
+                            && commands[j].Type != commands[i].Type
+                            && CanRevertCommand(ref state, commands[j])
+                        )
+                            abandoned = true;
+                    if (abandoned)
+                        continue;
                     ProcessCommand(ref state, ecb, commands[i]);
                 }
 
@@ -52,6 +68,14 @@ namespace Archeus.Battle.Systems.Input
                 return;
             }
 
+            if (!state.EntityManager.HasComponent<StageSnapshotStatus>(context.Battle))
+                return;
+            StageSnapshotStatus status = state.EntityManager.GetComponentData<StageSnapshotStatus>(
+                context.Battle
+            );
+            if (!status.IsValid || status.Revision != command.StageRevision)
+                return;
+
             switch (command.Type)
             {
                 // Drawing
@@ -62,6 +86,42 @@ namespace Archeus.Battle.Systems.Input
                 {
                     DrawingInputHandler.Handle(state.EntityManager, ecb, command, context);
 
+                    break;
+                }
+
+                case BattleInputCommandType.EndPlanning:
+                {
+                    Entity request = ecb.CreateEntity();
+                    ecb.AddComponent(request, new EndPlanningRequest { Player = context.Player });
+                    ecb.AddComponent(
+                        request,
+                        new StageCommandOwner
+                        {
+                            Battle = context.Battle,
+                            Revision = command.StageRevision,
+                        }
+                    );
+                    break;
+                }
+                case BattleInputCommandType.RevertStage:
+                {
+                    Entity request = ecb.CreateEntity();
+                    ecb.AddComponent(
+                        request,
+                        new RevertStageRequest
+                        {
+                            Player = context.Player,
+                            ExpectedRevision = command.StageRevision,
+                        }
+                    );
+                    ecb.AddComponent(
+                        request,
+                        new StageCommandOwner
+                        {
+                            Battle = context.Battle,
+                            Revision = command.StageRevision,
+                        }
+                    );
                     break;
                 }
 
@@ -92,6 +152,28 @@ namespace Archeus.Battle.Systems.Input
                     break;
                 }
             }
+        }
+
+        private bool CanRevertCommand(ref SystemState state, BattleInputCommand command)
+        {
+            if (!TryResolveContext(ref state, command, out BattleInputContext context))
+                return false;
+            var entities = state.EntityManager;
+            if (
+                !entities.HasComponent<StageSnapshotStatus>(context.Battle)
+                || !entities.HasComponent<ActiveTurnPlayer>(context.Battle)
+                || !entities.HasComponent<BattleState>(context.Battle)
+            )
+                return false;
+            var status = entities.GetComponentData<StageSnapshotStatus>(context.Battle);
+            var phase = entities.GetComponentData<BattleState>(context.Battle).Phase;
+            return status.IsValid
+                && status.Revision == command.StageRevision
+                && entities.GetComponentData<ActiveTurnPlayer>(context.Battle).Player
+                    == context.Player
+                && (phase == BattlePhase.Drawing || phase == BattlePhase.Planning)
+                && !entities.HasComponent<BattleDrawingCompleteTag>(context.Battle)
+                && !entities.HasComponent<BattlePlanningCompleteTag>(context.Battle);
         }
 
         private bool TryResolveContext(

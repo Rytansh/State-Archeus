@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="StaticSyntaxChecks.cs" />
+    <Compile Include="../../Assets/Battle/Simulation/Snapshots/StageSnapshotWindow.cs" Link="StageSnapshotWindow.cs" />
+    <Compile Include="../../Assets/Testing/EditMode/Battle/Snapshots/StageSnapshotWindowTests.cs" Link="StageSnapshotWindowTests.cs" />
+    <Compile Include="../../Assets/Game/Bootstrap/RNG/DeterministicRNG.cs" Link="DeterministicRNG.cs" />
+    <Compile Include="../../Assets/Testing/EditMode/Battle/Snapshots/DeterministicRngSnapshotTests.cs" Link="DeterministicRngSnapshotTests.cs" />
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <PackageReference Include="NUnitLite" Version="3.13.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

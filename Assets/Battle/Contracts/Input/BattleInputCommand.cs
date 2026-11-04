@@ -10,6 +10,8 @@ namespace Archeus.Battle.Buffers.Input
         PlaceCard,
         RetreatCard,
         EndDrawing,
+        EndPlanning,
+        RevertStage,
     }
 
     public struct BattleInputCommand : IBufferElementData
@@ -18,6 +20,7 @@ namespace Archeus.Battle.Buffers.Input
         public ulong BattleID;
         public BattleSide Side;
         public BattleInputCommandType Type;
+        public ulong StageRevision;
 
         public uint CardRuntimeID;
         public FieldPosition FieldPosition;

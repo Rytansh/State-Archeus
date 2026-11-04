@@ -12,6 +12,44 @@ namespace Archeus.Game.Bootstrap
         // ============================================================
 
         private readonly Queue<PresentationFact> pendingFacts = new();
+        private readonly Queue<ulong> pendingReversions = new();
+
+        /// <summary>Transport invalidation only; never emits a gameplay event.</summary>
+        public void InvalidateProvisionalPresentation(ulong battleID)
+        {
+            int facts = pendingFacts.Count;
+            for (int i = 0; i < facts; i++)
+            {
+                PresentationFact fact = pendingFacts.Dequeue();
+                if (fact.FactMetadata.BattleRuntimeID != battleID)
+                    pendingFacts.Enqueue(fact);
+            }
+            int updates = pendingStateUpdates.Count;
+            for (int i = 0; i < updates; i++)
+            {
+                PresentationStateUpdate update = pendingStateUpdates.Dequeue();
+                if (update.BattleRuntimeID != battleID)
+                    pendingStateUpdates.Enqueue(update);
+            }
+            if (
+                latestStateSnapshot != null
+                && latestStateSnapshot.Battle.BattleRuntimeID == battleID
+            )
+                latestStateSnapshot = null;
+            pendingReversions.Enqueue(battleID);
+            RequestStateRecovery(battleID);
+        }
+
+        public bool TryTakeReversion(out ulong battleID)
+        {
+            if (pendingReversions.Count == 0)
+            {
+                battleID = default;
+                return false;
+            }
+            battleID = pendingReversions.Dequeue();
+            return true;
+        }
 
         public int PendingFactCount => pendingFacts.Count;
 
@@ -204,6 +242,7 @@ namespace Archeus.Game.Bootstrap
         public void Clear()
         {
             pendingFacts.Clear();
+            pendingReversions.Clear();
 
             latestStateSnapshot = null;
 

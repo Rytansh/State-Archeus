@@ -19,6 +19,7 @@ namespace Archeus.Battle.Systems.Actions
 {
     [DisableAutoCreation]
     [UpdateInGroup(typeof(BattleSimulationGroup))]
+    [UpdateAfter(typeof(TurnFlowGroup))]
     [UpdateBefore(typeof(BattleEventProcessingSystem))]
     public partial struct ActionExecutionSystem : ISystem
     {
@@ -48,6 +49,12 @@ namespace Archeus.Battle.Systems.Actions
                     .WithEntityAccess()
             )
             {
+                // Planning queues are provisional. Execute only after planning has committed.
+                if (
+                    !SystemAPI.HasComponent<BattleState>(battle)
+                    || SystemAPI.GetComponent<BattleState>(battle).Phase != BattlePhase.Attacking
+                )
+                    continue;
                 if (requests.Length == 0)
                     continue;
 

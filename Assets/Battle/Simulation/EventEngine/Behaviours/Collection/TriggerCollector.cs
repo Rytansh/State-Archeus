@@ -139,6 +139,7 @@ namespace Archeus.Battle.VM.Execution
                         RegistrationIndex = registrationIndex,
 
                         Owner = entity,
+                        OwnerRuntimeID = ctx.CardRuntimeIDLookup[entity].Value,
 
                         Source = evt.Source,
 

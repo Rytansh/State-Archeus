@@ -38,5 +38,12 @@ namespace Archeus.Battle.Presentation
         {
             presenters.Clear();
         }
+
+        public void ResetAnimations()
+        {
+            foreach (CharacterPresenter presenter in presenters.Values)
+                if (presenter != null && presenter.Animator != null)
+                    presenter.Animator.Rebind();
+        }
     }
 }
