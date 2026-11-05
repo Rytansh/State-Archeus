@@ -113,6 +113,9 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent(battle, new BattleActionExecutionCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattleOperationIDCounter { NextID = 1 });
             ecb.AddComponent(battle, new PresentationStateRevision { Value = 0 });
+            ecb.AddComponent(battle, new AttackingStageExecutionInstance { Context = Entity.Null });
+            ecb.AddComponent(battle, new AttackingStageExecutionInstanceCounter { NextID = 1 });
+            ecb.AddComponent(battle, new BattlePhaseEpoch { Value = 0 });
             ecb.AddComponent(battle, new TurnCounter { CurrentTurn = 0 });
             ecb.AddComponent(
                 battle,
