@@ -37,7 +37,7 @@ namespace Archeus.Battle.Systems.Turnflow
         {
             foreach (
                 var (request, requestEntity) in SystemAPI
-                    .Query<RefRO<EndDrawingRequest>>()
+                    .Query<RefRO<EndPlanningRequest>>()
                     .WithEntityAccess()
             )
             {
@@ -47,7 +47,7 @@ namespace Archeus.Battle.Systems.Turnflow
                     !TurnCommandValidator.TryGetActiveBattle(
                         ref state,
                         player,
-                        BattlePhase.Drawing,
+                        BattlePhase.Planning,
                         out Entity battle
                     ) || SystemAPI.HasComponent<BattlePlanningCompleteTag>(battle)
                 )

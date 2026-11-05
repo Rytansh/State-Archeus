@@ -11,6 +11,7 @@ namespace Archeus.Battle.Buffers.VM
         public int RegistrationIndex;
 
         public Entity Owner;
+        public uint OwnerRuntimeID;
         public Entity Source;
         public Entity Target;
 

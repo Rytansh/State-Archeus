@@ -20,6 +20,7 @@ namespace Archeus.Game.Bootstrap
             {
                 typeof(BattlePresentationProbeSystem),
                 typeof(PresentationFactImportSystem),
+                typeof(PresentationStageReversionSystem),
                 typeof(BattlePresenterRegistrationSystem),
                 typeof(BattlePresentationGroup),
                 typeof(BattlePresentationAssemblySystem),

@@ -40,6 +40,17 @@ public partial struct BattlePresentationAssemblySystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
+        // A stage revert destroys abandoned packets and rewinds gameplay action IDs.
+        // Drop stale cache entries before a replay can reuse one of those IDs.
+        using (
+            NativeArray<PresentationActionKey> keys = openActionPackets.GetKeyArray(Allocator.Temp)
+        )
+            foreach (PresentationActionKey key in keys)
+                if (
+                    openActionPackets.TryGetValue(key, out Entity packet)
+                    && !state.EntityManager.Exists(packet)
+                )
+                    openActionPackets.Remove(key);
         Entity inboxEntity = inboxQuery.GetSingletonEntity();
 
         DynamicBuffer<PresentationFact> factsQueue =

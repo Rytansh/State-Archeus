@@ -1,0 +1,13 @@
+<linker>
+  <!-- Generic codecs discover nested value fields, including private fields, by reflection.
+       Retain game metadata until a generated field visitor replaces reflection. This deliberately
+       trades some IL2CPP stripping opportunities for complete snapshot coverage. -->
+  <assembly fullname="GameAssembly" preserve="all" />
+  <assembly fullname="Unity.Entities">
+    <type fullname="Unity.Entities.Entity" preserve="all" />
+    <type fullname="Unity.Entities.Simulate" preserve="all" />
+    <type fullname="Unity.Entities.Disabled" preserve="all" />
+    <type fullname="Unity.Entities.Prefab" preserve="all" />
+    <type fullname="Unity.Entities.LinkedEntityGroup" preserve="all" />
+  </assembly>
+</linker>

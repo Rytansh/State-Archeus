@@ -1,6 +1,7 @@
 using Archeus.Battle.Buffers.Input;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Requests;
+using Archeus.Battle.Snapshots;
 using Archeus.Core.Debugging;
 using Unity.Entities;
 
@@ -18,7 +19,7 @@ namespace Archeus.Battle.Input
             switch (command.Type)
             {
                 case BattleInputCommandType.DrawCards:
-                    CreateDrawCardsRequest(ecb, context);
+                    CreateDrawCardsRequest(ecb, command, context);
                     break;
 
                 case BattleInputCommandType.PlaceCard:
@@ -30,7 +31,7 @@ namespace Archeus.Battle.Input
                     break;
 
                 case BattleInputCommandType.EndDrawing:
-                    CreateEndDrawingRequest(ecb, context);
+                    CreateEndDrawingRequest(ecb, command, context);
                     break;
 
                 default:
@@ -44,12 +45,14 @@ namespace Archeus.Battle.Input
 
         private static void CreateDrawCardsRequest(
             EntityCommandBuffer ecb,
+            in BattleInputCommand command,
             in BattleInputContext context
         )
         {
             Entity request = ecb.CreateEntity();
 
             ecb.AddComponent(request, new DrawCardsRequest { Player = context.Player });
+            Fence(ecb, request, command, context);
         }
 
         private static void CreatePlaceCardRequest(
@@ -78,6 +81,7 @@ namespace Archeus.Battle.Input
 
             Entity request = ecb.CreateEntity();
 
+            Fence(ecb, request, command, context);
             ecb.AddComponent(
                 request,
                 new PlaceCardRequest
@@ -115,6 +119,7 @@ namespace Archeus.Battle.Input
 
             Entity request = ecb.CreateEntity();
 
+            Fence(ecb, request, command, context);
             ecb.AddComponent(
                 request,
                 new RetreatCardRequest { Player = context.Player, CardToRetreat = card }
@@ -123,12 +128,25 @@ namespace Archeus.Battle.Input
 
         private static void CreateEndDrawingRequest(
             EntityCommandBuffer ecb,
+            in BattleInputCommand command,
             in BattleInputContext context
         )
         {
             Entity request = ecb.CreateEntity();
 
             ecb.AddComponent(request, new EndDrawingRequest { Player = context.Player });
+            Fence(ecb, request, command, context);
         }
+
+        private static void Fence(
+            EntityCommandBuffer ecb,
+            Entity request,
+            in BattleInputCommand command,
+            in BattleInputContext context
+        ) =>
+            ecb.AddComponent(
+                request,
+                new StageCommandOwner { Battle = context.Battle, Revision = command.StageRevision }
+            );
     }
 }

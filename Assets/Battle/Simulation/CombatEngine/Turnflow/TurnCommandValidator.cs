@@ -1,6 +1,7 @@
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Snapshots;
 using Unity.Entities;
 
 namespace Archeus.Battle.Runtime
@@ -40,6 +41,15 @@ namespace Archeus.Battle.Runtime
             BattleState battleState = entityManager.GetComponentData<BattleState>(battle);
 
             if (battleState.Phase != requiredPhase)
+                return false;
+
+            if (
+                (requiredPhase == BattlePhase.Drawing || requiredPhase == BattlePhase.Planning)
+                && (
+                    !entityManager.HasComponent<StageSnapshotStatus>(battle)
+                    || !entityManager.GetComponentData<StageSnapshotStatus>(battle).IsValid
+                )
+            )
                 return false;
 
             ActiveTurnPlayer activeTurnPlayer = entityManager.GetComponentData<ActiveTurnPlayer>(

@@ -23,6 +23,7 @@ namespace Archeus.Battle.Systems.Events
 {
     [DisableAutoCreation]
     [UpdateInGroup(typeof(BattleSimulationGroup))]
+    [UpdateAfter(typeof(TurnFlowGroup))]
     public partial struct BattleEventProcessingSystem : ISystem
     {
         private const int MAX_EXECUTIONS = 10000;
@@ -617,11 +618,13 @@ namespace Archeus.Battle.Systems.Events
                 new NativeList<BehaviourExecutionRequest>(Allocator.Temp);
 
             foreach (
-                var (behaviours, entity) in SystemAPI
-                    .Query<DynamicBuffer<BehaviourReference>>()
+                var (behaviours, owner, entity) in SystemAPI
+                    .Query<DynamicBuffer<BehaviourReference>, RefRO<OwnedBattle>>()
                     .WithEntityAccess()
             )
             {
+                if (owner.ValueRO.Battle != ctx.Battle)
+                    continue;
                 TriggerCollector.CollectFromEntity(
                     entity,
                     behaviours,

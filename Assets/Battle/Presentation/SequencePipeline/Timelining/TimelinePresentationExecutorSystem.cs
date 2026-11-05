@@ -34,6 +34,29 @@ namespace Archeus.Battle.Systems.Presentation
         private readonly Queue<int> pendingImpactIndices = new();
         private readonly HashSet<int> consumedImpactIndices = new();
 
+        public void CancelBattle(ulong battleID)
+        {
+            if (!runnerQuery.IsEmptyIgnoreFilter)
+                EnsureRunner();
+            if (runner?.ActivePlan != null && runner.ActivePlan.BattleRuntimeID != battleID)
+                return;
+            if (runner?.ActivePlan != null && runner.ActivePlan.BattleRuntimeID == battleID)
+                runner.CancelPlayback();
+            if (
+                activePlanEntity != Entity.Null
+                && EntityManager.Exists(activePlanEntity)
+                && EntityManager.HasComponent<PresentationExecutionPlanReference>(activePlanEntity)
+                && EntityManager
+                    .GetComponentObject<PresentationExecutionPlanReference>(activePlanEntity)
+                    .Plan.BattleRuntimeID != battleID
+            )
+                return;
+            activePlanEntity = Entity.Null;
+            pendingImpactIndices.Clear();
+            consumedImpactIndices.Clear();
+            playbackStopped = false;
+        }
+
         protected override void OnCreate()
         {
             runnerQuery = GetEntityQuery(

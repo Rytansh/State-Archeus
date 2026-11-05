@@ -1,4 +1,5 @@
 using System;
+using Archeus.Battle.Snapshots;
 using Archeus.Battle.Systems.Actions;
 using Archeus.Battle.Systems.Effects;
 using Archeus.Battle.Systems.Events;
@@ -55,6 +56,8 @@ namespace Archeus.Game.Bootstrap
                 typeof(VMSystemGroup),
                 // Battle setup
                 typeof(BattlePhaseTransitionSystem),
+                typeof(BattleStageSnapshotSystem),
+                typeof(BattleStageRevertSystem),
                 typeof(BattleCreationSystem),
                 typeof(RosterInitialisationSystem),
                 typeof(BattleReadinessSystem),

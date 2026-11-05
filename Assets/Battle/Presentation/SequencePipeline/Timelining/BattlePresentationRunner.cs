@@ -51,6 +51,10 @@ namespace Archeus.Battle.Presentation
 
         public void OnNotify(Playable origin, INotification notification, object context)
         {
+            if (ActivePlan == null)
+                return;
+            if (!origin.IsValid() || !origin.GetGraph().Equals(primaryDirector.playableGraph))
+                return;
             if (notification is not PresentationConsumptionMarker marker)
             {
                 return;
@@ -98,6 +102,24 @@ namespace Archeus.Battle.Presentation
 
             primaryDirector.playableAsset = null;
             primaryDirector.time = 0;
+        }
+
+        /// <summary>Abandon playback without completion callbacks or fallback impacts.</summary>
+        public void CancelPlayback()
+        {
+            PresentationExecutionPlan abandoned = ActivePlan;
+            ActivePlan = null;
+            if (primaryDirector != null)
+            {
+                primaryDirector.Stop();
+                if (abandoned?.Timeline != null)
+                    foreach (var track in abandoned.Timeline.GetOutputTracks())
+                        primaryDirector.ClearGenericBinding(track);
+                primaryDirector.playableAsset = null;
+                primaryDirector.time = 0;
+            }
+            if (damageNumberPresenter != null)
+                damageNumberPresenter.Clear();
         }
 
         public void ResetDirector()
