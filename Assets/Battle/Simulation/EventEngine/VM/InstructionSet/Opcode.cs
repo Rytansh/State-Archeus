@@ -30,5 +30,7 @@ namespace Archeus.Battle.Data.VM
         JumpIfFalse,
         JumpIfTrue,
         End,
+        RequestActionControl,
+        PushInheritedStat,
     }
 }

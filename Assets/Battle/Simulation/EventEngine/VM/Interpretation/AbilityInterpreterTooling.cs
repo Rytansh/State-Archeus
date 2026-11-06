@@ -3,6 +3,7 @@ using Archeus.Battle.Data.Events;
 using Archeus.Battle.Data.VM;
 using Archeus.Battle.Events.Context;
 using Archeus.Battle.Runtime;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -129,7 +130,14 @@ namespace Archeus.Battle.VM.Execution
                 if (!context.CurrentHealthLookup.HasComponent(candidate))
                     continue;
 
-                if (context.CurrentHealthLookup[candidate].Value <= 0f)
+                if (
+                    context.CurrentHealthLookup[candidate].Value <= 0f
+                    || !ActionQueueService.IsLivingFieldActor(
+                        context.Entities,
+                        candidate,
+                        context.Battle
+                    )
+                )
                     continue;
 
                 BattleSide candidateSide = context.TeamLookup[candidate].Side;
@@ -139,12 +147,30 @@ namespace Archeus.Battle.VM.Execution
 
                 if (frame.Targets.Length >= frame.Targets.Capacity)
                 {
+                    frame.Faulted = true;
                     Logging.Warn(LogCategory.VM, "VM target collection exceeded capacity.");
 
                     return;
                 }
 
                 frame.Targets.Add(candidate);
+            }
+            SortTargets(ref frame, context.Entities);
+        }
+
+        public static void SortTargets(ref AbilityExecutionFrame frame, EntityManager em)
+        {
+            for (int i = 1; i < frame.Targets.Length; i++)
+            {
+                Entity target = frame.Targets[i];
+                uint id = ActionOrderPublication.RuntimeID(em, target);
+                int j = i - 1;
+                while (j >= 0 && ActionOrderPublication.RuntimeID(em, frame.Targets[j]) > id)
+                {
+                    frame.Targets[j + 1] = frame.Targets[j];
+                    j--;
+                }
+                frame.Targets[j + 1] = target;
             }
         }
     }

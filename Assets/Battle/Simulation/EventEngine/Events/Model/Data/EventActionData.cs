@@ -1,4 +1,5 @@
 using Archeus.Battle.Data.Actions;
+using Unity.Entities;
 
 namespace Archeus.Battle.Events.Context
 {
@@ -9,6 +10,11 @@ namespace Archeus.Battle.Events.Context
         public const ushort NoHit = ushort.MaxValue;
 
         public uint ActionExecutionID;
+        public uint ActionDefinitionID;
+        public uint QueueActionID;
+        public uint ContextID;
+        public uint CausingExecutionID;
+        public Entity InheritedSource;
         public CharacterActionType ActionType;
         public ushort ActionResultGroupIndex;
         public ushort HitIndex;

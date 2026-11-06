@@ -93,6 +93,9 @@ namespace Archeus.Battle.Systems.Presentation
         {
             switch (update)
             {
+                case ActionOrderStateUpdate actionOrder:
+                    ActionOrderMirrorAccess.Get(EntityManager).State = actionOrder.State;
+                    return true;
                 case BattlePresentationStateUpdate battleUpdate:
                     return TryApplyBattleUpdate(battleUpdate);
 

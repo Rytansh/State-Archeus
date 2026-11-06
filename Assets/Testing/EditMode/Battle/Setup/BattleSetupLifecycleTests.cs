@@ -293,10 +293,13 @@ namespace Archeus.Testing.Battle.Setup
         [Test]
         public void TurnStartCompletion_StillAdvancesToDrawing()
         {
-            Entity battle = entities.CreateEntity(typeof(BattleTag));
-
-            entities.AddComponentData(battle, new BattleState { Phase = BattlePhase.TurnStart });
-
+            using var fixture = new Archeus.Testing.Battle.Snapshots.SnapshotTestFixture(testWorld);
+            Entity battle = fixture.Battle;
+            Archeus.Battle.Runtime.AttackingStageExecutionManager.SetPhase(
+                entities,
+                battle,
+                BattlePhase.TurnStart
+            );
             entities.AddComponent<BattleTurnStartCompleteTag>(battle);
 
             RunPhaseTransition();

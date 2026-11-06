@@ -2,6 +2,8 @@ using Archeus.Battle.Buffers.Input;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Data.Actions;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Unity.Collections;
 using Unity.Entities;
@@ -122,9 +124,24 @@ namespace Archeus.Game.Input
             using (NativeArray<Entity> battles = query.ToEntityArray(Allocator.Temp))
                 foreach (Entity battle in battles)
                     if (entityManager.GetComponentData<BattleID>(battle).Value == command.BattleID)
+                    {
                         command.StageRevision = entityManager
                             .GetComponentData<StageSnapshotStatus>(battle)
                             .Revision;
+                        if (
+                            ActionQueueService.TryActive(
+                                entityManager,
+                                battle,
+                                out _,
+                                out var active
+                            )
+                        )
+                            command.ContextID = active.ContextID;
+                        if (entityManager.HasComponent<BattlePhaseEpoch>(battle))
+                            command.PhaseEpoch = entityManager
+                                .GetComponentData<BattlePhaseEpoch>(battle)
+                                .Value;
+                    }
 
             DynamicBuffer<BattleInputCommand> buffer = entityManager.GetBuffer<BattleInputCommand>(
                 inbox
@@ -132,5 +149,123 @@ namespace Archeus.Game.Input
 
             buffer.Add(command);
         }
+
+        public void RequestQueueAction(
+            ulong battleID,
+            BattleSide side,
+            uint source,
+            uint target,
+            CharacterActionType type = CharacterActionType.NormalAttack,
+            uint definitionID = 0
+        ) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.QueueAction,
+                    CardRuntimeID = source,
+                    TargetRuntimeID = target,
+                    ActionType = type,
+                    DefinitionID = definitionID,
+                }
+            );
+
+        public void RequestRemoveAction(ulong battleID, BattleSide side, uint queueID) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.RemoveAction,
+                    QueueActionID = queueID,
+                }
+            );
+
+        public void RequestMoveAction(
+            ulong battleID,
+            BattleSide side,
+            uint queueID,
+            int position
+        ) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.MoveAction,
+                    QueueActionID = queueID,
+                    Position = position,
+                }
+            );
+
+        public void RequestSelectInterrupt(
+            ulong battleID,
+            BattleSide side,
+            uint selectionID,
+            uint queueID
+        ) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.SelectInterrupt,
+                    SelectionID = selectionID,
+                    QueueActionID = queueID,
+                }
+            );
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public void EnableSchedulerDebug(ulong battleID, BattleSide side)
+        {
+            using var query = entityManager.CreateEntityQuery(
+                ComponentType.ReadOnly<BattlePlayerIdentity>(),
+                ComponentType.ReadOnly<OwnedBattle>(),
+                ComponentType.ReadOnly<BattleSideAssignment>()
+            );
+            using NativeArray<Entity> players = query.ToEntityArray(Allocator.Temp);
+            foreach (Entity player in players)
+            {
+                Entity battle = entityManager.GetComponentData<OwnedBattle>(player).Battle;
+                if (
+                    entityManager.GetComponentData<BattleSideAssignment>(player).Side == side
+                    && entityManager.Exists(battle)
+                    && entityManager.GetComponentData<BattleID>(battle).Value == battleID
+                    && !entityManager.HasComponent<Archeus.Battle.Input.SchedulerDebugAuthority>(
+                        player
+                    )
+                )
+                    entityManager.AddComponent<Archeus.Battle.Input.SchedulerDebugAuthority>(
+                        player
+                    );
+            }
+        }
+#endif
+
+        public void RequestDebugSchedulerControl(
+            ulong battleID,
+            BattleSide side,
+            ActionControlKind kind,
+            uint actor,
+            uint target,
+            CharacterActionType type = CharacterActionType.NormalAttack,
+            uint queueID = 0,
+            int position = 0
+        ) =>
+            Enqueue(
+                new BattleInputCommand
+                {
+                    BattleID = battleID,
+                    Side = side,
+                    Type = BattleInputCommandType.DebugSchedulerControl,
+                    ControlKind = kind,
+                    CardRuntimeID = actor,
+                    TargetRuntimeID = target,
+                    ActionType = type,
+                    QueueActionID = queueID,
+                    Position = position,
+                }
+            );
     }
 }

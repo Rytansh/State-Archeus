@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="../../Assets/Battle/Simulation/CombatEngine/Actions/Scheduling/ActionSchedulerRules.cs" Link="ActionSchedulerRules.cs" />
+    <Compile Include="../../Assets/Testing/EditMode/Battle/Scheduling/ActionQueueAlgorithmTests.cs" Link="ActionQueueAlgorithmTests.cs" />
     <Compile Include="StaticSyntaxChecks.cs" />
     <Compile Include="../../Assets/Battle/Simulation/Snapshots/StageSnapshotWindow.cs" Link="StageSnapshotWindow.cs" />
     <Compile Include="../../Assets/Testing/EditMode/Battle/Snapshots/StageSnapshotWindowTests.cs" Link="StageSnapshotWindowTests.cs" />

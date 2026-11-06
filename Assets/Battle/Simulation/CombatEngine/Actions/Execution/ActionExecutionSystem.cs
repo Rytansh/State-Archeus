@@ -2,17 +2,17 @@ using Archeus.Battle.Buffers.Actions;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Buffers.Presentation;
 using Archeus.Battle.Components.Core;
-using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Components.Tags;
-using Archeus.Battle.Data.Actions;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Context;
 using Archeus.Battle.Events.Factory;
 using Archeus.Battle.Presentation.Factory;
 using Archeus.Battle.Presentation.Facts;
+using Archeus.Battle.Presentation.State;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Systems.Events;
-using Archeus.Core.Debugging;
+using Unity.Collections;
 using Unity.Entities;
 
 namespace Archeus.Battle.Systems.Actions
@@ -25,152 +25,120 @@ namespace Archeus.Battle.Systems.Actions
     {
         public void OnUpdate(ref SystemState state)
         {
-            foreach (
-                var (
-                    requests,
-                    actionStates,
-                    eventQueue,
-                    factQueue,
-                    actionCounter,
-                    groupCounter,
-                    presentationSequenceCounter,
-                    battle
-                ) in SystemAPI
-                    .Query<
-                        DynamicBuffer<ActionExecutionRequest>,
-                        DynamicBuffer<ActionExecutionState>,
-                        DynamicBuffer<BattleEvent>,
-                        DynamicBuffer<PresentationFact>,
-                        RefRW<BattleActionExecutionCounter>,
-                        RefRW<BattleEventGroupIDCounter>,
-                        RefRW<PresentationSequenceCounter>
-                    >()
-                    .WithAll<BattleTag>()
-                    .WithEntityAccess()
-            )
+            var em = state.EntityManager;
+            using var query = em.CreateEntityQuery(
+                ComponentType.ReadOnly<BattleTag>(),
+                ComponentType.ReadOnly<ActionSchedulerState>()
+            );
+            using NativeArray<Entity> battles = query.ToEntityArray(Allocator.Temp);
+            foreach (Entity battle in battles)
             {
-                // Planning queues are provisional. Execute only after planning has committed.
                 if (
-                    !SystemAPI.HasComponent<BattleState>(battle)
-                    || SystemAPI.GetComponent<BattleState>(battle).Phase != BattlePhase.Attacking
+                    !ActionQueueService.Healthy(em, battle)
+                    || em.GetComponentData<BattleState>(battle).Phase != BattlePhase.Attacking
+                    || Archeus.Battle.Systems.Setup.BattlePhaseTransitionSystem.ShouldSkip(
+                        em,
+                        battle,
+                        BattlePhase.Attacking
+                    )
+                    || !ActionQueueService.TryActive(em, battle, out Entity context, out var data)
+                    || !ActionQueueService.IsSettled(em, battle)
+                    || ActionControlProcessor.HasPendingChild(em, battle, context)
+                    || em.GetBuffer<ActionControlRequest>(battle).Length != 0
                 )
                     continue;
-                if (requests.Length == 0)
+                var pending = em.GetBuffer<PlannedAction>(context);
+                if (pending.Length == 0)
                     continue;
-
-                if (eventQueue.Length > 0)
-                    continue;
-
-                ActionExecutionRequest request = requests[0];
-
-                requests.RemoveAt(0);
-
-                if (!TryGetActionEventType(request.CharacterAction, out BattleEventType eventType))
+                var scheduler = em.GetComponentData<ActionSchedulerState>(battle);
+                if (++scheduler.DispatchesThisTurn > ActionQueueAlgorithms.MaximumDispatchesPerTurn)
                 {
-                    Logging.Warn(
-                        LogCategory.Combat,
-                        $"Unsupported action type: {request.CharacterAction}"
-                    );
-
+                    ActionQueueService.Fail(em, battle, SchedulerFailure.DispatchLimit);
                     continue;
                 }
-
-                uint executionID = actionCounter.ValueRO.NextID;
-
-                actionCounter.ValueRW.NextID++;
-
-                actionStates.Add(
-                    new ActionExecutionState
-                    {
-                        ActionExecutionID = executionID,
-                        NextResultGroupIndex = 0,
-
-                        Source = request.Source,
-                        PrimaryTarget = request.PrimaryTarget,
-                        ActionType = request.CharacterAction,
-                    }
+                var counter = em.GetComponentData<BattleActionExecutionCounter>(battle);
+                if (counter.NextID == 0 || counter.NextID == uint.MaxValue)
+                {
+                    ActionQueueService.Fail(em, battle, SchedulerFailure.IdentityExhausted);
+                    continue;
+                }
+                PlannedAction action = pending[0];
+                pending.RemoveAt(0);
+                uint executionID = counter.NextID++;
+                em.SetComponentData(battle, counter);
+                em.SetComponentData(battle, scheduler);
+                em.GetBuffer<ActionExecutionState>(battle)
+                    .Add(
+                        new ActionExecutionState
+                        {
+                            ActionExecutionID = executionID,
+                            QueueActionID = action.QueueActionID,
+                            ContextID = data.ContextID,
+                            Context = context,
+                            Action = action,
+                            Outcome = ActionOutcome.AttemptStarted,
+                            Source = action.Source,
+                            PrimaryTarget = action.PrimaryTarget,
+                            ActionType = action.CharacterAction,
+                        }
+                    );
+                ActionOrderPublication.Emit(
+                    em,
+                    battle,
+                    SchedulerFactKind.Dequeued,
+                    action,
+                    ActionOutcome.AttemptStarted,
+                    executionID
                 );
-
-                BattleEvent actionEvent = new BattleEvent
-                {
-                    Type = eventType,
-                    Scope = BattleEventScope.Targeted,
-
-                    Source = request.Source,
-                    Target = request.PrimaryTarget,
-
-                    ActionData = new EventActionData
-                    {
-                        ActionExecutionID = executionID,
-
-                        ActionType = request.CharacterAction,
-
-                        ActionResultGroupIndex = EventActionData.NoActionResultGroup,
-                    },
-                };
-
-                ulong battleRuntimeID = SystemAPI.GetComponent<BattleID>(battle).Value;
-
-                uint sourceRuntimeID = SystemAPI.GetComponent<CardRuntimeID>(request.Source).Value;
-
-                uint targetRuntimeID = SystemAPI
-                    .GetComponent<CardRuntimeID>(request.PrimaryTarget)
-                    .Value;
-                PresentationFactContext presentationContext = new PresentationFactContext
-                {
-                    BattleRuntimeID = battleRuntimeID,
-
-                    SourceRuntimeID = sourceRuntimeID,
-                    TargetRuntimeID = targetRuntimeID,
-
-                    ActionDefinitionID = 0,
-                    ActionExecutionID = executionID,
-                    ActionResultIndex = PresentationFactMetadata.NoActionResult,
-
-                    GroupID = EventStructuralData.InvalidGroupID,
-                    Generation = 0,
-                };
-
                 PresentationFactEmitter.EmitActionStartedFact(
-                    presentationContext,
-                    factQueue,
-                    presentationSequenceCounter
+                    new PresentationFactContext
+                    {
+                        BattleRuntimeID = em.GetComponentData<BattleID>(battle).Value,
+                        SourceRuntimeID = ActionOrderPublication.RuntimeID(em, action.Source),
+                        TargetRuntimeID = ActionOrderPublication.RuntimeID(
+                            em,
+                            action.PrimaryTarget
+                        ),
+                        ActionDefinitionID = action.DefinitionID,
+                        ActionExecutionID = executionID,
+                        ActionResultIndex = PresentationFactMetadata.NoActionResult,
+                        HitIndex = PresentationFactMetadata.NoHit,
+                    },
+                    em.GetBuffer<PresentationFact>(battle),
+                    SystemAPI.GetComponentRW<PresentationSequenceCounter>(battle)
                 );
-
-                DynamicBuffer<BattleEvent> writableEventQueue = eventQueue;
-
+                ActionOrderPublication.Emit(
+                    em,
+                    battle,
+                    SchedulerFactKind.AttemptStarted,
+                    action,
+                    ActionOutcome.AttemptStarted,
+                    executionID
+                );
+                var events = em.GetBuffer<BattleEvent>(battle);
                 BattleEventEmitter.EmitOriginEvent(
-                    actionEvent,
-                    ref writableEventQueue,
-                    groupCounter
+                    new BattleEvent
+                    {
+                        Type = BattleEventType.ActionAttemptStarted,
+                        Scope = BattleEventScope.Global,
+                        Source = action.Source,
+                        Target = action.PrimaryTarget,
+                        ActionData = new EventActionData
+                        {
+                            ActionExecutionID = executionID,
+                            ActionDefinitionID = action.DefinitionID,
+                            QueueActionID = action.QueueActionID,
+                            ContextID = data.ContextID,
+                            ActionType = action.CharacterAction,
+                            CausingExecutionID = action.CausingExecutionID,
+                            InheritedSource = action.InheritedSource,
+                            ActionResultGroupIndex = EventActionData.NoActionResultGroup,
+                            HitIndex = EventActionData.NoHit,
+                        },
+                    },
+                    ref events,
+                    SystemAPI.GetComponentRW<BattleEventGroupIDCounter>(battle)
                 );
-
-                Logging.Info(
-                    LogCategory.Simulation,
-                    $"Action Started:"
-                        + $"Execution={executionID} | "
-                        + $"Type={request.CharacterAction} | "
-                        + $"Source={request.Source.Index}"
-                );
-            }
-        }
-
-        private static bool TryGetActionEventType(
-            CharacterActionType actionType,
-            out BattleEventType eventType
-        )
-        {
-            switch (actionType)
-            {
-                case CharacterActionType.NormalAttack:
-                    eventType = BattleEventType.TestEvent;
-                    return true;
-
-                // add more later
-
-                default:
-                    eventType = default;
-                    return false;
             }
         }
     }

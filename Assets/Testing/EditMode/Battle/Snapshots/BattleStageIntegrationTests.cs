@@ -10,6 +10,7 @@ using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Data.Actions;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Archeus.Battle.Systems.Actions;
 using Archeus.Battle.Systems.Input;
@@ -144,10 +145,12 @@ namespace Archeus.Testing.Battle.Snapshots
             Entities.SetComponentData(fixture.Player, new RemainingActionPoints { Value = 0 });
             Entities.SetComponentData(fixture.Card, new CurrentHealth { Value = 12 });
             Entities
-                .GetBuffer<ActionExecutionRequest>(fixture.Battle)
+                .GetBuffer<PlannedAction>(fixture.Context)
                 .Add(
-                    new ActionExecutionRequest
+                    new PlannedAction
                     {
+                        QueueActionID = 1,
+                        ActionType = PlannedActionType.CharacterAction,
                         Source = fixture.Card,
                         PrimaryTarget = fixture.Card,
                         CharacterAction = CharacterActionType.NormalAttack,
@@ -162,7 +165,7 @@ namespace Archeus.Testing.Battle.Snapshots
                 Entities.GetComponentData<RemainingActionPoints>(fixture.Player).Value,
                 Is.EqualTo(3)
             );
-            Assert.That(Entities.GetBuffer<ActionExecutionRequest>(fixture.Battle).Length, Is.Zero);
+            Assert.That(Entities.GetBuffer<PlannedAction>(fixture.Context).Length, Is.Zero);
             Assert.That(baseline.ComputeCurrentHash(Entities), Is.EqualTo(baseline.BaselineHash));
             Assert.That(fixture.Snapshots.TryRevert(fixture.Player, drawingRevision), Is.False);
         }
@@ -200,10 +203,12 @@ namespace Archeus.Testing.Battle.Snapshots
             );
             ulong revision = fixture.Open();
             Entities
-                .GetBuffer<ActionExecutionRequest>(fixture.Battle)
+                .GetBuffer<PlannedAction>(fixture.Context)
                 .Add(
-                    new ActionExecutionRequest
+                    new PlannedAction
                     {
+                        QueueActionID = 1,
+                        ActionType = PlannedActionType.CharacterAction,
                         Source = fixture.Card,
                         PrimaryTarget = fixture.Card,
                         CharacterAction = CharacterActionType.NormalAttack,
@@ -211,10 +216,7 @@ namespace Archeus.Testing.Battle.Snapshots
                 );
             var actions = fixture.World.CreateSystem<ActionExecutionSystem>();
             actions.Update(fixture.World.Unmanaged);
-            Assert.That(
-                Entities.GetBuffer<ActionExecutionRequest>(fixture.Battle).Length,
-                Is.EqualTo(1)
-            );
+            Assert.That(Entities.GetBuffer<PlannedAction>(fixture.Context).Length, Is.EqualTo(1));
             Assert.That(fixture.Snapshots.TryRevert(fixture.Player, revision), Is.True);
             Entities.SetComponentData(
                 fixture.Battle,
@@ -242,6 +244,10 @@ namespace Archeus.Testing.Battle.Snapshots
                     Side = BattleSide.SideA,
                     Type = BattleInputCommandType.DrawCards,
                     StageRevision = revision,
+                    ContextID = Entities
+                        .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                        .ContextID,
+                    PhaseEpoch = Entities.GetComponentData<BattlePhaseEpoch>(fixture.Battle).Value,
                 }
             );
             commands.Add(
@@ -251,6 +257,10 @@ namespace Archeus.Testing.Battle.Snapshots
                     Side = BattleSide.SideA,
                     Type = BattleInputCommandType.RevertStage,
                     StageRevision = revision,
+                    ContextID = Entities
+                        .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                        .ContextID,
+                    PhaseEpoch = Entities.GetComponentData<BattlePhaseEpoch>(fixture.Battle).Value,
                 }
             );
             Request(new DrawCardsRequest { Player = fixture.Player });
@@ -271,6 +281,12 @@ namespace Archeus.Testing.Battle.Snapshots
                         Side = BattleSide.SideA,
                         Type = BattleInputCommandType.DrawCards,
                         StageRevision = revision,
+                        ContextID = Entities
+                            .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                            .ContextID,
+                        PhaseEpoch = Entities
+                            .GetComponentData<BattlePhaseEpoch>(fixture.Battle)
+                            .Value,
                     }
                 );
             route.Update(fixture.World.Unmanaged);
@@ -328,6 +344,10 @@ namespace Archeus.Testing.Battle.Snapshots
                     Side = BattleSide.SideA,
                     Type = BattleInputCommandType.DrawCards,
                     StageRevision = revision,
+                    ContextID = Entities
+                        .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                        .ContextID,
+                    PhaseEpoch = Entities.GetComponentData<BattlePhaseEpoch>(fixture.Battle).Value,
                 }
             );
             commands.Add(
@@ -337,6 +357,10 @@ namespace Archeus.Testing.Battle.Snapshots
                     Side = BattleSide.SideB,
                     Type = BattleInputCommandType.RevertStage,
                     StageRevision = revision,
+                    ContextID = Entities
+                        .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                        .ContextID,
+                    PhaseEpoch = Entities.GetComponentData<BattlePhaseEpoch>(fixture.Battle).Value,
                 }
             );
             route.Update(fixture.World.Unmanaged);
@@ -354,21 +378,24 @@ namespace Archeus.Testing.Battle.Snapshots
             );
             var attacking = fixture.World.CreateSystem<AttackingStageSystem>();
             var actions = fixture.World.CreateSystem<ActionExecutionSystem>();
-            var request = new ActionExecutionRequest
+            var request = new PlannedAction
             {
+                QueueActionID = 1,
+                ContextID = Entities
+                    .GetComponentData<AttackingStageExecutionContext>(fixture.Context)
+                    .ContextID,
+                ActionType = PlannedActionType.CharacterAction,
                 Source = fixture.Card,
                 PrimaryTarget = fixture.Card,
                 CharacterAction = CharacterActionType.NormalAttack,
             };
-            Entities.GetBuffer<ActionExecutionRequest>(fixture.Battle).Add(request);
-            Entities.GetBuffer<ActionExecutionRequest>(fixture.Battle).Add(request);
+            Entities.GetBuffer<PlannedAction>(fixture.Context).Add(request);
+            request.QueueActionID = 2;
+            Entities.GetBuffer<PlannedAction>(fixture.Context).Add(request);
             attacking.Update(fixture.World.Unmanaged);
             actions.Update(fixture.World.Unmanaged);
             transition.Update(fixture.World.Unmanaged);
-            Assert.That(
-                Entities.GetBuffer<ActionExecutionRequest>(fixture.Battle).Length,
-                Is.EqualTo(1)
-            );
+            Assert.That(Entities.GetBuffer<PlannedAction>(fixture.Context).Length, Is.EqualTo(1));
             Assert.That(
                 Entities.GetComponentData<BattleState>(fixture.Battle).Phase,
                 Is.EqualTo(BattlePhase.Attacking)

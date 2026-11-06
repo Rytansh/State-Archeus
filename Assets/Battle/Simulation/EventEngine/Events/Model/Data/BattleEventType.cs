@@ -38,6 +38,8 @@ namespace Archeus.Battle.Data.Events
         //(Status Related Events)
         EntityKilled,
         ReactionTriggered,
+        ActionAttemptStarted,
+        ActionPerformed,
     }
 
     public enum BattleEventScope : byte

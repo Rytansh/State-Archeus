@@ -1,17 +1,21 @@
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Data.Effects;
 using Archeus.Battle.Data.Events;
-using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Events.Context;
+using Archeus.Battle.Events.Factory;
+using Archeus.Battle.Events.Payloads;
 using Archeus.Core.Debugging;
 using Unity.Entities;
-using Archeus.Battle.Events.Factory;
 
 namespace Archeus.Battle.Events.Resolvers
 {
     public static class EffectApplicationResolvedResolver
     {
-        public static void Resolve(ref BattleContext ctx, BattleEvent evt, in EventEmissionContext emissionContext)
+        public static void Resolve(
+            ref BattleContext ctx,
+            BattleEvent evt,
+            in EventEmissionContext emissionContext
+        )
         {
             //validate effect application and apply mutations
 
@@ -25,13 +29,24 @@ namespace Archeus.Battle.Events.Resolvers
             ref var effectDef = ref registry.Effects[evt.Payload.Effect.EffectIndex];
 
             ApplyEffect(activeEffects, evt, effectDef.StackBehaviour);
+            Archeus.Battle.Scheduling.ActionResolution.MarkApplied(
+                ref ctx,
+                evt.ActionData.ActionExecutionID
+            );
 
             if (evt.Payload.Effect.Duration != -1)
             {
-                Logging.Info(LogCategory.Testing, $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% for {evt.Payload.Effect.Duration} turns. This effect has {effectDef.StatModifiers.Length} stat modifiers.");
-            } else
+                Logging.Info(
+                    LogCategory.Testing,
+                    $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% for {evt.Payload.Effect.Duration} turns. This effect has {effectDef.StatModifiers.Length} stat modifiers."
+                );
+            }
+            else
             {
-                Logging.Info(LogCategory.Testing, $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% permanently. This effect has {effectDef.StatModifiers.Length} stat modifiers.");
+                Logging.Info(
+                    LogCategory.Testing,
+                    $"Applied effect {evt.Payload.Effect.EffectIndex} to target {target.Index} with strength {evt.Payload.Effect.Strength}% permanently. This effect has {effectDef.StatModifiers.Length} stat modifiers."
+                );
             }
 
             BattleEvent effectAppliedEvent = new BattleEvent
@@ -47,16 +62,24 @@ namespace Archeus.Battle.Events.Resolvers
                         EffectIndex = evt.Payload.Effect.EffectIndex,
                         Strength = evt.Payload.Effect.Strength,
                         Duration = evt.Payload.Effect.Duration,
-                        IsPermanent = evt.Payload.Effect.IsPermanent
-                    }
+                        IsPermanent = evt.Payload.Effect.IsPermanent,
+                    },
                 },
-                StructuralData = evt.StructuralData
+                StructuralData = evt.StructuralData,
             };
 
-            BattleEventEmitter.EmitContinuationEvent(effectAppliedEvent, ref ctx.ChainedEventQueue, in emissionContext);
+            BattleEventEmitter.EmitContinuationEvent(
+                effectAppliedEvent,
+                ref ctx.ChainedEventQueue,
+                in emissionContext
+            );
         }
 
-        private static void ApplyEffect(DynamicBuffer<ActiveEffect> effects, BattleEvent evt, StackingBehaviour stackBehaviour)
+        private static void ApplyEffect(
+            DynamicBuffer<ActiveEffect> effects,
+            BattleEvent evt,
+            StackingBehaviour stackBehaviour
+        )
         {
             ActiveEffect effectToAdd = new ActiveEffect
             {
@@ -64,10 +87,10 @@ namespace Archeus.Battle.Events.Resolvers
                 Strength = evt.Payload.Effect.Strength,
                 RemainingDuration = evt.Payload.Effect.Duration,
                 IsPermanent = evt.Payload.Effect.IsPermanent,
-                Source = evt.Source
+                Source = evt.Source,
             };
 
-            switch(stackBehaviour)
+            switch (stackBehaviour)
             {
                 case StackingBehaviour.AddInstance:
                 {
@@ -102,7 +125,6 @@ namespace Archeus.Battle.Events.Resolvers
 
                     break;
                 }
-                
             }
         }
 

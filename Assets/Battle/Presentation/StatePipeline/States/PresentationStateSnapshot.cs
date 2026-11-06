@@ -6,6 +6,7 @@ namespace Archeus.Battle.Presentation.State
     {
         public BattlePresentationState Battle;
         public ulong Revision;
+        public ActionOrderSnapshot ActionOrder;
 
         public CharacterPresentationState[] Characters = Array.Empty<CharacterPresentationState>();
         public HandPresentationState[] Hands = Array.Empty<HandPresentationState>();

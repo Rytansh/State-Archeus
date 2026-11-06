@@ -10,5 +10,9 @@ namespace Archeus.Battle.Presentation.Facts
         EffectRemoved,
 
         EntityKilled,
+        SchedulerTransition,
+        ActionInterrupted,
+        ActionCancelled,
+        ActionFailed,
     }
 }

@@ -180,6 +180,15 @@ namespace Archeus.Game.Bootstrap
         // TYPED PUBLICATION API
         // ============================================================
 
+        public void PublishActionOrderStateUpdate(
+            ulong battleID,
+            ulong revision,
+            ActionOrderSnapshot state
+        )
+        {
+            pendingStateUpdates.Enqueue(new ActionOrderStateUpdate(battleID, revision, state));
+        }
+
         public void PublishBattleStateUpdate(
             ulong battleRuntimeID,
             ulong revision,

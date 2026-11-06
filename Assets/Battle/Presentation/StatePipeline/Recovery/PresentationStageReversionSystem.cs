@@ -27,6 +27,12 @@ namespace Archeus.Battle.Systems.Presentation
                 .Bridge;
             while (bridge.TryTakeReversion(out ulong battleID))
             {
+                var actionOrder = ActionOrderMirrorAccess.Get(EntityManager);
+                if (actionOrder.State?.BattleID == battleID)
+                {
+                    actionOrder.State = null;
+                    actionOrder.Transitions.Clear();
+                }
                 bool currentBattle = false;
                 using (
                     var query = EntityManager.CreateEntityQuery(

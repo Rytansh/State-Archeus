@@ -20,6 +20,7 @@ namespace Archeus.Game.Bootstrap
             {
                 typeof(BattlePresentationProbeSystem),
                 typeof(PresentationFactImportSystem),
+                typeof(ActionOrderFactImportSystem),
                 typeof(PresentationStageReversionSystem),
                 typeof(BattlePresenterRegistrationSystem),
                 typeof(BattlePresentationGroup),
@@ -44,6 +45,11 @@ namespace Archeus.Game.Bootstrap
             BattlePresentationWorld presentationWorld = new BattlePresentationWorld(ecsWorld);
 
             rootContext.Register(presentationWorld);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            var actionOrderDebug = new UnityEngine.GameObject("Action Order Debug View");
+            UnityEngine.Object.DontDestroyOnLoad(actionOrderDebug);
+            actionOrderDebug.AddComponent<Archeus.Battle.Presentation.ActionOrderDebugView>();
+#endif
 
             // Create reference to the presentation bridge
             BattlePresentationBridge bridge = rootContext.Resolve<BattlePresentationBridge>();

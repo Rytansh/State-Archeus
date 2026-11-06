@@ -1,5 +1,7 @@
 using Archeus.Battle.Components.Core;
+using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Scheduling;
 using Unity.Entities;
 
 namespace Archeus.Battle.Runtime
@@ -37,6 +39,11 @@ namespace Archeus.Battle.Runtime
                 || !em.HasComponent<AttackingStageExecutionInstance>(battle)
                 || actingPlayer == Entity.Null
                 || !em.Exists(actingPlayer)
+                || !ActionQueueService.Belongs(em, actingPlayer, battle)
+                || !em.HasComponent<PlayerTag>(actingPlayer)
+                || !em.HasComponent<Archeus.Battle.Components.Turns.RemainingActionPoints>(
+                    actingPlayer
+                )
             )
                 return false;
 
@@ -52,13 +59,21 @@ namespace Archeus.Battle.Runtime
                     || parent == battle
                     || !em.Exists(parent)
                     || !em.HasComponent<AttackingStageExecutionContext>(parent)
+                    || !ActionQueueService.Belongs(em, parent, battle)
                     || em.GetComponentData<AttackingStageExecutionContext>(parent).Battle != battle
+                    || em.GetComponentData<AttackingStageExecutionContext>(parent).Depth
+                        >= ActionQueueAlgorithms.MaximumContextDepth
                 )
                     return false;
 
                 if (
                     type == AttackingStageExecutionType.ExtraAction
-                    && (actingCharacter == Entity.Null || !em.Exists(actingCharacter))
+                    && (
+                        !ActionQueueService.Belongs(em, actingCharacter, battle)
+                        || !em.HasComponent<CardOwner>(actingCharacter)
+                        || em.GetComponentData<CardOwner>(actingCharacter).Player != actingPlayer
+                        || !ActionQueueService.CanReceiveExtraAction(em, actingCharacter, battle)
+                    )
                 )
                     return false;
             }
@@ -84,10 +99,18 @@ namespace Archeus.Battle.Runtime
                     ExecutionStatus = AttackingStageExecutionStatus.Created,
                     DeferredPhase = default,
                     RemainingActionPoints = 0,
-                    NextActionIndex = 0,
+                    Depth =
+                        parent == Entity.Null
+                            ? (byte)0
+                            : (byte)(
+                                em.GetComponentData<AttackingStageExecutionContext>(parent).Depth
+                                + 1
+                            ),
                 }
             );
             em.AddBuffer<PlannedAction>(context);
+            em.AddBuffer<ActionTargetHistory>(context);
+            em.AddComponentData(context, new OwnedBattle { Battle = battle });
 
             counter.NextID++;
             em.SetComponentData(battle, counter);

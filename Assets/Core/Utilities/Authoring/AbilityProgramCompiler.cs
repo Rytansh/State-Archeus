@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Archeus.Battle.Data.Actions;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Data.VM;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.VM;
 
 public static class AbilityProgramCompiler
@@ -51,7 +53,7 @@ public static class AbilityProgramCompiler
 
         foreach (var line in instructionLines)
         {
-            var parts = line.Split(' ');
+            var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
             var opcode = Enum.Parse<AbilityOpcode>(parts[0]);
 
@@ -66,6 +68,18 @@ public static class AbilityProgramCompiler
                 {
                     Opcode = opcode,
                     A = A,
+                    B =
+                        opcode == AbilityOpcode.RequestActionControl && parts.Length > 2
+                            ? (
+                                Enum.TryParse<CharacterActionType>(parts[2], out var action)
+                                    ? (int)action
+                                    : int.Parse(parts[2])
+                            )
+                            : 0,
+                    C =
+                        opcode == AbilityOpcode.RequestActionControl && parts.Length > 3
+                            ? int.Parse(parts[3])
+                            : 0,
                     Flags = AbilityOpcodeSemantics.GetFlags(opcode),
                 }
             );
@@ -106,6 +120,11 @@ public static class AbilityProgramCompiler
                 return (int)ev;
             }
 
+            case AbilityOpcode.RequestActionControl:
+                return (int)Enum.Parse<ActionControlKind>(arg);
+            case AbilityOpcode.PushInheritedStat:
+            case AbilityOpcode.PushStat:
+                return int.Parse(arg);
             case AbilityOpcode.SelectTarget:
             {
                 if (!Enum.TryParse<TargetSelectionType>(arg, out var targetType))

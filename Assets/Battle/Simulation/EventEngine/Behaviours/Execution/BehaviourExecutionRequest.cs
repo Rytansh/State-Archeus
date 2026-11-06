@@ -9,6 +9,8 @@ namespace Archeus.Battle.Buffers.VM
         public int TriggerIndex;
         public int Priority;
         public int RegistrationIndex;
+        public bool IsActionProgram;
+        public int ProgramIndex;
 
         public Entity Owner;
         public uint OwnerRuntimeID;

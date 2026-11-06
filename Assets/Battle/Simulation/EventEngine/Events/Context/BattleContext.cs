@@ -2,6 +2,7 @@ using Archeus.Battle.Buffers.Actions;
 using Archeus.Battle.Buffers.Combat;
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Buffers.Presentation;
+using Archeus.Battle.Buffers.VM;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Presentation;
@@ -21,6 +22,8 @@ namespace Archeus.Battle.Events.Context
         public DynamicBuffer<BattleParticipant> Participants;
         public DynamicBuffer<ActionExecutionState> ActionExecutionStates;
         public RefRW<BattleOperationIDCounter> OperationCounter;
+        public DynamicBuffer<BehaviourExecutionRequest> ExecutionRequests;
+        public EntityManager Entities;
 
         // Battle-owned presentation resources
         public DynamicBuffer<PresentationFact> PresentationFactQueue;

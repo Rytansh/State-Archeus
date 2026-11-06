@@ -6,10 +6,28 @@ namespace Archeus.Battle.Events.Resolvers
 {
     public static class BattleEventResolver
     {
-        public static void Resolve(BattleEvent evt, ref BattleContext context, in EventEmissionContext emissionContext)
+        public static void Resolve(
+            BattleEvent evt,
+            ref BattleContext context,
+            in EventEmissionContext emissionContext
+        )
         {
             switch (evt.Type)
             {
+                case BattleEventType.ActionAttemptStarted:
+                    Archeus.Battle.Scheduling.ActionResolution.Authorize(
+                        evt,
+                        ref context,
+                        in emissionContext
+                    );
+                    break;
+                case BattleEventType.ActionPerformed:
+                    Archeus.Battle.Scheduling.ActionResolution.Perform(
+                        evt,
+                        ref context,
+                        in emissionContext
+                    );
+                    break;
                 case BattleEventType.DamageRequested:
                     DamageRequestResolver.Resolve(ref context, evt, in emissionContext);
                     break;
@@ -26,7 +44,11 @@ namespace Archeus.Battle.Events.Resolvers
                     DamageResolvedResolver.Resolve(ref context, evt, in emissionContext);
                     break;
                 case BattleEventType.EffectApplicationRequested:
-                    EffectApplicationRequestedResolver.Resolve(ref context, evt, in emissionContext);
+                    EffectApplicationRequestedResolver.Resolve(
+                        ref context,
+                        evt,
+                        in emissionContext
+                    );
                     break;
                 case BattleEventType.EffectApplicationResolved:
                     EffectApplicationResolvedResolver.Resolve(ref context, evt, in emissionContext);

@@ -30,7 +30,7 @@ public struct AttackingStageExecutionContext : IComponentData
     public BattlePhase DeferredPhase;
 
     public int RemainingActionPoints;
-    public int NextActionIndex;
+    public byte Depth;
 }
 
 public struct AttackingStageExecutionInstance : IComponentData
