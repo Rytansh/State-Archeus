@@ -217,11 +217,36 @@ namespace Archeus.Battle.Systems.Turnflow
                     continue;
                 }
 
+                // The designated lead character can NEVER retreat.
+                // This is a permanent gameplay invariant, not a
+                // removable status effect or character-specific rule.
+                if (
+                    SystemAPI.HasComponent<LeadCharacter>(player)
+                    && SystemAPI.GetComponent<LeadCharacter>(player).Value == card
+                )
+                {
+                    Logging.Warn(LogCategory.Combat, "The lead character cannot retreat.");
+
+                    ecb.DestroyEntity(requestEntity);
+                    continue;
+                }
+
                 // Skills, Primordial Blizzard, etc. can use this generic
                 // restriction rather than hard-coding card types here.
                 if (SystemAPI.HasComponent<CannotRetreatTag>(card))
                 {
                     Logging.Warn(LogCategory.Combat, "This card cannot retreat.");
+
+                    ecb.DestroyEntity(requestEntity);
+                    continue;
+                }
+
+                if (SystemAPI.HasComponent<RetreatedThisTurn>(card))
+                {
+                    Logging.Warn(
+                        LogCategory.Combat,
+                        "This card has already retreated during the current turn."
+                    );
 
                     ecb.DestroyEntity(requestEntity);
                     continue;

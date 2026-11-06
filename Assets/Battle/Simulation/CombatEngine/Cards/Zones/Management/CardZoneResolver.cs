@@ -69,6 +69,34 @@ namespace Archeus.Battle.Runtime
             int maxHandSize
         )
         {
+            if (hand.Length >= maxHandSize)
+                return false;
+
+            if (!TryFindFreeHandPosition(hand, out HandPosition position))
+                return false;
+
+            for (int i = 0; i < field.Length; i++)
+            {
+                FieldCard entry = field[i];
+
+                if (entry.Card != card)
+                    continue;
+
+                bool isAttackingForce =
+                    entry.Position == FieldPosition.AttackingForceSlot1
+                    || entry.Position == FieldPosition.AttackingForceSlot2
+                    || entry.Position == FieldPosition.AttackingForceSlot3;
+
+                if (!isAttackingForce)
+                    return false;
+
+                hand.Add(new HandCard { Card = card, Position = position });
+
+                field.RemoveAt(i);
+
+                return true;
+            }
+
             return false;
         }
 

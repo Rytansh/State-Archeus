@@ -46,44 +46,65 @@ namespace Archeus.Battle.Systems.Turnflow
                     LogCategory.Combat,
                     $" Starting turn {turnCounter.ValueRW.CurrentTurn}."
                 );
-                var eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
-                RefRW<BattleEventGroupIDCounter> groupCounter =
-                    SystemAPI.GetComponentRW<BattleEventGroupIDCounter>(battle);
 
-                BattleEventEmitter.EmitOriginEvent(
-                    new BattleEvent
-                    {
-                        Type = BattleEventType.TurnStarted,
-                        Scope = BattleEventScope.Global,
-                        Source = battle,
-                        Target = Entity.Null,
-                        Payload = new EventPayload { },
-                    },
-                    ref eventBuffer,
-                    groupCounter
-                );
+                RefreshAllRetreatRestrictions(ref state, ecb, battle);
 
-                foreach (
-                    var (ownedBattle, remainingAP, maxAP, _) in SystemAPI
-                        .Query<
-                            RefRO<OwnedBattle>,
-                            RefRW<RemainingActionPoints>,
-                            RefRO<MaxActionPoints>
-                        >()
-                        .WithAll<PlayerTag>()
-                        .WithEntityAccess()
-                )
-                {
-                    if (ownedBattle.ValueRO.Battle != battle)
-                        continue;
-                    remainingAP.ValueRW.Value = maxAP.ValueRO.Value;
-                }
+                EmitTurnStartedEvent(ref state, battle);
+
+                RefreshPlayerAP(ref state, player);
 
                 ecb.AddComponent<BattleTurnStartCompleteTag>(battle);
             }
 
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
+        }
+
+        private void RefreshAllRetreatRestrictions(
+            ref SystemState state,
+            EntityCommandBuffer ecb,
+            Entity battle
+        )
+        {
+            foreach (
+                var (ownedBattle, card) in SystemAPI
+                    .Query<RefRO<OwnedBattle>>()
+                    .WithAll<RetreatedThisTurn>()
+                    .WithEntityAccess()
+            )
+            {
+                if (ownedBattle.ValueRO.Battle != battle)
+                    continue;
+
+                ecb.RemoveComponent<RetreatedThisTurn>(card);
+            }
+        }
+
+        private void RefreshPlayerAP(ref SystemState state, Entity player)
+        {
+            int maxAP = SystemAPI.GetComponent<MaxActionPoints>(player).Value;
+
+            SystemAPI.GetComponentRW<RemainingActionPoints>(player).ValueRW.Value = maxAP;
+        }
+
+        private void EmitTurnStartedEvent(ref SystemState state, Entity battle)
+        {
+            DynamicBuffer<BattleEvent> eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);
+            RefRW<BattleEventGroupIDCounter> groupCounter =
+                SystemAPI.GetComponentRW<BattleEventGroupIDCounter>(battle);
+
+            BattleEventEmitter.EmitOriginEvent(
+                new BattleEvent
+                {
+                    Type = BattleEventType.TurnStarted,
+                    Scope = BattleEventScope.Global,
+                    Source = battle,
+                    Target = Entity.Null,
+                    Payload = new EventPayload { },
+                },
+                ref eventBuffer,
+                groupCounter
+            );
         }
     }
 }

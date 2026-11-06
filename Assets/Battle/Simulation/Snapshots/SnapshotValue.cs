@@ -163,12 +163,25 @@ namespace Archeus.Battle.Snapshots
             }
             if (IsFixedList(type))
             {
+                MethodInfo toArrayMethod = type.GetMethod("ToArray", Type.EmptyTypes);
+
+                if (toArrayMethod == null)
+                {
+                    throw new NotSupportedException(
+                        $"FixedList type {type} does not expose ToArray()."
+                    );
+                }
+
+                Array elements = (Array)toArrayMethod.Invoke(value, null);
+
                 text.Append('[');
-                foreach (object item in (IEnumerable)value)
+
+                foreach (object item in elements)
                 {
                     Append(text, item, identities);
                     text.Append('|');
                 }
+
                 text.Append(']');
                 return;
             }

@@ -131,10 +131,11 @@ namespace Archeus.Testing.Battle.Snapshots
             Entities.GetBuffer<BasicEffectInstance>(fixture.Card).Clear();
             Entities.GetBuffer<DOTEffectInstance>(fixture.Card).Clear();
             memory[2] = 100;
-            Entities.GetBuffer<BehaviourRuntimeState>(fixture.Card)[0] = new BehaviourRuntimeState
-            {
-                Memory = memory,
-            };
+
+            DynamicBuffer<BehaviourRuntimeState> behaviourBuffer =
+                Entities.GetBuffer<BehaviourRuntimeState>(fixture.Card);
+
+            behaviourBuffer[0] = new BehaviourRuntimeState { Memory = memory };
             Assert.That(
                 snapshot.ComputeCurrentHash(Entities),
                 Is.Not.EqualTo(snapshot.BaselineHash)
