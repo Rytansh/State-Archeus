@@ -7,6 +7,11 @@ namespace Archeus.Battle.Components.Core
         public BattlePhase Phase;
     }
 
+    public struct BattlePhaseEpoch : IComponentData
+    {
+        public uint Value;
+    }
+
     public enum BattlePhase : byte
     {
         Setup = 0,

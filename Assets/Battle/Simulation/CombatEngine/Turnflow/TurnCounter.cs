@@ -6,5 +6,4 @@ namespace Archeus.Battle.Components.Turns
     {
         public int CurrentTurn;
     }
-    
 }
