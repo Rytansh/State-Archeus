@@ -25,11 +25,36 @@ internal static class StaticSyntaxChecks
             files++;
             var tree = CSharpSyntaxTree.ParseText(
                 File.ReadAllText(path),
-                new CSharpParseOptions(LanguageVersion.CSharp9),
+                new CSharpParseOptions(
+                    LanguageVersion.CSharp9,
+                    preprocessorSymbols: new[]
+                    {
+                        "UNITY_EDITOR",
+                        "UNITY_INCLUDE_TESTS",
+                        "UNITY_6000_0_OR_NEWER",
+                    }
+                ),
                 path
             );
             foreach (
                 Diagnostic diagnostic in tree.GetDiagnostics()
+                    .Where(item => item.Severity == DiagnosticSeverity.Error)
+            )
+            {
+                Console.Error.WriteLine(diagnostic);
+                errors++;
+            }
+            var playerTree = CSharpSyntaxTree.ParseText(
+                File.ReadAllText(path),
+                new CSharpParseOptions(
+                    LanguageVersion.CSharp9,
+                    preprocessorSymbols: new[] { "UNITY_INCLUDE_TESTS", "UNITY_6000_0_OR_NEWER" }
+                ),
+                path
+            );
+            foreach (
+                Diagnostic diagnostic in playerTree
+                    .GetDiagnostics()
                     .Where(item => item.Severity == DiagnosticSeverity.Error)
             )
             {
@@ -83,7 +108,7 @@ internal static class StaticSyntaxChecks
             }
         }
         Console.WriteLine(
-            $"C# 9 syntax checked: {files} files, {errors} errors. This is not Unity compilation."
+            $"C# 9 syntax checked: {files} files in Editor and player configurations, {errors} errors. This is not Unity compilation."
         );
         return errors == 0 ? 0 : 1;
     }
