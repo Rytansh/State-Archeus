@@ -3,6 +3,7 @@ using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Buffers.VM;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -28,29 +29,18 @@ namespace Archeus.Battle.Systems.Turnflow
                 if (battleState.ValueRO.Phase != BattlePhase.Attacking)
                     continue;
 
-                // ActionExecutionSystem consumes the committed queue over successive updates.
-                // Do not leave Attacking while actions or their causal effects are outstanding.
                 if (
-                    (
-                        SystemAPI.HasBuffer<ActionExecutionRequest>(battle)
-                        && SystemAPI.GetBuffer<ActionExecutionRequest>(battle).Length != 0
+                    !ActionQueueService.Healthy(state.EntityManager, battle)
+                    || !ActionQueueService.TryActive(
+                        state.EntityManager,
+                        battle,
+                        out Entity context,
+                        out _
                     )
-                    || (
-                        SystemAPI.HasBuffer<ActionExecutionState>(battle)
-                        && SystemAPI.GetBuffer<ActionExecutionState>(battle).Length != 0
-                    )
-                    || (
-                        SystemAPI.HasBuffer<BattleEvent>(battle)
-                        && SystemAPI.GetBuffer<BattleEvent>(battle).Length != 0
-                    )
-                    || (
-                        SystemAPI.HasBuffer<ChainedBattleEvent>(battle)
-                        && SystemAPI.GetBuffer<ChainedBattleEvent>(battle).Length != 0
-                    )
-                    || (
-                        SystemAPI.HasBuffer<BehaviourExecutionRequest>(battle)
-                        && SystemAPI.GetBuffer<BehaviourExecutionRequest>(battle).Length != 0
-                    )
+                    || SystemAPI.GetBuffer<PlannedAction>(context).Length != 0
+                    || !ActionQueueService.IsSettled(state.EntityManager, battle)
+                    || SystemAPI.GetBuffer<ActionControlRequest>(battle).Length != 0
+                    || ActionControlProcessor.HasPendingChild(state.EntityManager, battle, context)
                 )
                     continue;
 

@@ -8,7 +8,7 @@ using Unity.Entities;
 
 [DisableAutoCreation]
 [UpdateInGroup(typeof(BattlePresentationGroup))]
-[UpdateAfter(typeof(PresentationFactImportSystem))]
+[UpdateAfter(typeof(ActionOrderFactImportSystem))]
 public partial struct BattlePresentationAssemblySystem : ISystem
 {
     private NativeHashMap<PresentationActionKey, Entity> openActionPackets;
@@ -106,6 +106,15 @@ public partial struct BattlePresentationAssemblySystem : ISystem
                 break;
             }
 
+            case PresentationFactType.ActionInterrupted:
+            case PresentationFactType.ActionCancelled:
+            case PresentationFactType.ActionFailed:
+                if (openActionPackets.TryGetValue(key, out Entity abandoned))
+                {
+                    openActionPackets.Remove(key);
+                    state.EntityManager.DestroyEntity(abandoned);
+                }
+                break;
             case PresentationFactType.ActionCompleted:
             {
                 SealActionPacket(ref state, in key, in fact);

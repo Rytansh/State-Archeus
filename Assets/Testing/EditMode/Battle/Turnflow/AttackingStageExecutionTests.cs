@@ -1,5 +1,8 @@
 using Archeus.Battle.Components.Core;
+using Archeus.Battle.Components.Ownership;
+using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Runtime;
 using NUnit.Framework;
 using Unity.Entities;
@@ -33,6 +36,20 @@ namespace Archeus.Testing.Battle.Turnflow
             playerA = em.CreateEntity();
             playerB = em.CreateEntity();
             characterB = em.CreateEntity();
+            foreach (Entity player in new[] { playerA, playerB })
+            {
+                em.AddComponent<PlayerTag>(player);
+                em.AddComponentData(player, new OwnedBattle { Battle = battle });
+                em.AddComponentData(player, new RemainingActionPoints { Value = 4 });
+                em.AddBuffer<FieldCard>(player);
+            }
+            em.AddComponentData(playerA, new BattleSideAssignment { Side = BattleSide.SideA });
+            em.AddComponentData(playerB, new BattleSideAssignment { Side = BattleSide.SideB });
+            em.AddComponentData(characterB, new BattleSideAssignment { Side = BattleSide.SideB });
+            em.AddComponentData(characterB, new OwnedBattle { Battle = battle });
+            em.AddComponentData(characterB, new CardOwner { Player = playerB });
+            em.AddComponentData(characterB, new CurrentHealth { Value = 100 });
+            em.GetBuffer<FieldCard>(playerB).Add(new FieldCard { Card = characterB });
         }
 
         [TearDown]
@@ -134,7 +151,7 @@ namespace Archeus.Testing.Battle.Turnflow
         }
 
         [Test]
-        public void ChildPreservesParentsActionPlanAndCursor()
+        public void ChildPreservesParentsPendingActionPlanAndAP()
         {
             Entity root = CreateRoot(playerA);
             Assert.That(AttackingStageExecutionManager.TryActivateRoot(em, battle, root), Is.True);
@@ -149,7 +166,8 @@ namespace Archeus.Testing.Battle.Turnflow
                     }
                 );
             var data = Context(root);
-            data.NextActionIndex = 1;
+            data.RemainingActionPoints = 2;
+            em.SetComponentData(playerA, new RemainingActionPoints { Value = 2 });
             em.SetComponentData(root, data);
 
             SetPhaseForTest(BattlePhase.Attacking);
@@ -181,7 +199,7 @@ namespace Archeus.Testing.Battle.Turnflow
                 Is.EqualTo(AttackingStageExecutionStatus.Active)
             );
             Assert.That(em.GetBuffer<PlannedAction>(root).Length, Is.EqualTo(3));
-            Assert.That(Context(root).NextActionIndex, Is.EqualTo(1));
+            Assert.That(em.GetComponentData<RemainingActionPoints>(playerA).Value, Is.EqualTo(2));
             Assert.That(
                 em.GetComponentData<BattleState>(battle).Phase,
                 Is.EqualTo(BattlePhase.Attacking)

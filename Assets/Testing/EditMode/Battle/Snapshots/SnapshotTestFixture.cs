@@ -11,28 +11,36 @@ using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Runtime;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Archeus.Game.Bootstrap;
+using Unity.Collections;
 using Unity.Entities;
 
 namespace Archeus.Testing.Battle.Snapshots
 {
     internal sealed class SnapshotTestFixture : IDisposable
     {
-        public readonly World World = new("Stage snapshot Edit Mode tests");
+        public readonly World World;
+        private readonly bool ownsWorld;
         public EntityManager Entities => World.EntityManager;
         public readonly Entity Battle;
         public readonly Entity Player;
         public readonly Entity Opponent;
         public readonly Entity Card;
+        public Entity Context =>
+            Entities.GetComponentData<AttackingStageExecutionInstance>(Battle).Context;
         public readonly BattleStageSnapshotSystem Snapshots;
 
-        public SnapshotTestFixture()
+        public SnapshotTestFixture(World sharedWorld = null, ulong battleID = 42)
         {
+            ownsWorld = sharedWorld == null;
+            World = sharedWorld ?? new World("Stage snapshot Edit Mode tests");
             var entities = Entities;
             Battle = entities.CreateEntity();
             entities.AddComponent<BattleTag>(Battle);
-            entities.AddComponentData(Battle, new BattleID { Value = 42 });
+            entities.AddComponentData(Battle, new BattleID { Value = battleID });
             entities.AddComponentData(Battle, new BattleState { Phase = BattlePhase.Drawing });
             entities.AddComponentData(Battle, new TurnCounter { CurrentTurn = 1 });
             var rng = new DeterministicRNG(12345678);
@@ -52,9 +60,34 @@ namespace Archeus.Testing.Battle.Snapshots
             entities.AddBuffer<ActionExecutionRequest>(Battle);
             entities.AddBuffer<ActionExecutionState>(Battle);
             entities.AddBuffer<PresentationFact>(Battle);
+            using (var ecb = new EntityCommandBuffer(Allocator.Temp))
+            {
+                ActionQueueService.AddBattleData(ecb, Battle);
+                ecb.Playback(entities);
+            }
+            entities.AddComponentData(Battle, new AttackingStageExecutionInstance());
+            entities.AddComponentData(
+                Battle,
+                new AttackingStageExecutionInstanceCounter { NextID = 1 }
+            );
+            entities.AddComponentData(Battle, new BattlePhaseEpoch());
             Player = CreatePlayer(1001, BattleSide.SideA);
             Opponent = CreatePlayer(1002, BattleSide.SideB);
             entities.AddComponentData(Battle, new ActiveTurnPlayer { Player = Player });
+            entities.SetComponentData(Battle, new BattleState { Phase = BattlePhase.Setup });
+            if (
+                !AttackingStageExecutionContextFactory.TryCreate(
+                    entities,
+                    Battle,
+                    Player,
+                    AttackingStageExecutionType.NormalTurn,
+                    Entity.Null,
+                    Entity.Null,
+                    out Entity context
+                ) || !AttackingStageExecutionManager.TryActivateRoot(entities, Battle, context)
+            )
+                throw new InvalidOperationException("Snapshot test context setup failed.");
+            entities.SetComponentData(Battle, new BattleState { Phase = BattlePhase.Drawing });
             Card = CreateCard(100);
             entities.GetBuffer<DeckCard>(Player).Add(new DeckCard { Card = Card });
             Snapshots = World.GetOrCreateSystemManaged<BattleStageSnapshotSystem>();
@@ -100,6 +133,10 @@ namespace Archeus.Testing.Battle.Snapshots
             return Entities.GetComponentData<StageSnapshotStatus>(Battle).Revision;
         }
 
-        public void Dispose() => World.Dispose();
+        public void Dispose()
+        {
+            if (ownsWorld)
+                World.Dispose();
+        }
     }
 }

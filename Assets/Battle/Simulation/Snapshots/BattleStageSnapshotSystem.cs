@@ -8,6 +8,7 @@ using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Systems.Presentation;
 using Archeus.Battle.Systems.Setup;
 using Archeus.Core.Debugging;
@@ -31,6 +32,8 @@ namespace Archeus.Battle.Snapshots
             public bool CaptureFailed;
             public int FailedTurn;
             public ProvisionalStage FailedStage;
+            public uint FailedContext;
+            public uint FailedEpoch;
         }
 
         private readonly Dictionary<Entity, Entry> entries = new();
@@ -89,19 +92,37 @@ namespace Archeus.Battle.Snapshots
                 ulong playerID = EntityManager
                     .GetComponentData<BattlePlayerIdentity>(player)
                     .PlayerID;
-                if (entry.Window.CanRestore(entry.Window.Revision, id, playerID, turn, stage))
+                uint contextID = CurrentContext(battle);
+                uint epoch = CurrentEpoch(battle);
+                if (
+                    entry.Window.CanRestore(
+                        entry.Window.Revision,
+                        id,
+                        playerID,
+                        turn,
+                        stage,
+                        contextID,
+                        epoch
+                    )
+                )
                     continue;
                 Invalidate(battle, entry);
                 if (HasPendingEntryWork(battle))
                     continue;
                 // Fail closed once per entry rather than repeatedly accepting provisional inputs
                 // without a usable baseline, or flooding the log with an unsupported schema.
-                if (entry.CaptureFailed && entry.FailedTurn == turn && entry.FailedStage == stage)
+                if (
+                    entry.CaptureFailed
+                    && entry.FailedTurn == turn
+                    && entry.FailedStage == stage
+                    && entry.FailedContext == contextID
+                    && entry.FailedEpoch == epoch
+                )
                     continue;
                 try
                 {
                     entry.Snapshot = BattleStateSnapshot.Capture(EntityManager, battle);
-                    entry.Window.Open(id, playerID, turn, stage);
+                    entry.Window.Open(id, playerID, turn, stage, contextID, epoch);
                     entry.Player = player;
                     SetStatus(battle, entry.Window.Revision, true);
                 }
@@ -110,6 +131,8 @@ namespace Archeus.Battle.Snapshots
                     entry.CaptureFailed = true;
                     entry.FailedTurn = turn;
                     entry.FailedStage = stage;
+                    entry.FailedContext = contextID;
+                    entry.FailedEpoch = epoch;
                     Logging.Error(
                         LogCategory.Combat,
                         $"Stage snapshot capture failed; input disabled: {exception}"
@@ -120,6 +143,16 @@ namespace Archeus.Battle.Snapshots
 
         private bool HasPendingEntryWork(Entity battle) =>
             (
+                EntityManager.HasBuffer<Archeus.Battle.Buffers.Actions.ActionExecutionState>(battle)
+                && EntityManager
+                    .GetBuffer<Archeus.Battle.Buffers.Actions.ActionExecutionState>(battle)
+                    .Length != 0
+            )
+            || (
+                EntityManager.HasBuffer<ActionControlRequest>(battle)
+                && EntityManager.GetBuffer<ActionControlRequest>(battle).Length != 0
+            )
+            || (
                 EntityManager.HasBuffer<BattleEvent>(battle)
                 && EntityManager.GetBuffer<BattleEvent>(battle).Length != 0
             )
@@ -173,7 +206,9 @@ namespace Archeus.Battle.Snapshots
                     EntityManager.GetComponentData<BattleID>(battle).Value,
                     EntityManager.GetComponentData<BattlePlayerIdentity>(player).PlayerID,
                     EntityManager.GetComponentData<TurnCounter>(battle).CurrentTurn,
-                    stage
+                    stage,
+                    CurrentContext(battle),
+                    CurrentEpoch(battle)
                 )
             )
                 return false;
@@ -194,6 +229,8 @@ namespace Archeus.Battle.Snapshots
                 entry.CaptureFailed = true;
                 entry.FailedTurn = entry.Window.Turn;
                 entry.FailedStage = entry.Window.Stage;
+                entry.FailedContext = entry.Window.ContextID;
+                entry.FailedEpoch = entry.Window.PhaseEpoch;
                 throw;
             }
             entry.Player = entry.Snapshot.ResolveRestoredEntity(entry.Player);
@@ -201,7 +238,9 @@ namespace Archeus.Battle.Snapshots
                 entry.Window.BattleID,
                 entry.Window.PlayerID,
                 entry.Window.Turn,
-                entry.Window.Stage
+                entry.Window.Stage,
+                entry.Window.ContextID,
+                entry.Window.PhaseEpoch
             );
             SetStatus(battle, entry.Window.Revision, true);
             BattleStageRevertSystem.CancelBattleRequests(EntityManager, battle);
@@ -209,6 +248,9 @@ namespace Archeus.Battle.Snapshots
                 EntityManager.GetBuffer<PresentationFact>(battle).Clear();
             World
                 .GetExistingSystemManaged<PresentationUpdateExportSystem>()
+                ?.ForgetBattle(entry.Window.BattleID);
+            World
+                .GetExistingSystemManaged<ActionOrderExportSystem>()
                 ?.ForgetBattle(entry.Window.BattleID);
             // Operational publication counters stay monotonic; they are intentionally excluded
             // from the gameplay baseline, so the recovery snapshot cannot be rejected as stale.
@@ -233,5 +275,15 @@ namespace Archeus.Battle.Snapshots
                 phase == BattlePhase.Drawing ? ProvisionalStage.Drawing : ProvisionalStage.Planning;
             return phase == BattlePhase.Drawing || phase == BattlePhase.Planning;
         }
+
+        private uint CurrentContext(Entity battle) =>
+            ActionQueueService.TryActive(EntityManager, battle, out _, out var data)
+                ? data.ContextID
+                : 0;
+
+        private uint CurrentEpoch(Entity battle) =>
+            EntityManager.HasComponent<BattlePhaseEpoch>(battle)
+                ? EntityManager.GetComponentData<BattlePhaseEpoch>(battle).Value
+                : 0;
     }
 }

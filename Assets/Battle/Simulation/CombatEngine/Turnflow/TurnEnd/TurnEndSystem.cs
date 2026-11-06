@@ -4,6 +4,7 @@ using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Factory;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -27,6 +28,24 @@ namespace Archeus.Battle.Systems.Turnflow
             )
             {
                 if (battleState.ValueRO.Phase != BattlePhase.TurnEnd)
+                    continue;
+                if (
+                    Archeus.Battle.Systems.Setup.BattlePhaseTransitionSystem.ShouldSkip(
+                        state.EntityManager,
+                        battle,
+                        BattlePhase.TurnEnd
+                    )
+                )
+                    continue;
+                if (
+                    !ActionQueueService.TryActive(
+                        state.EntityManager,
+                        battle,
+                        out _,
+                        out var context
+                    )
+                    || context.ExecutionType != AttackingStageExecutionType.NormalTurn
+                )
                     continue;
 
                 DynamicBuffer<BattleEvent> eventBuffer = SystemAPI.GetBuffer<BattleEvent>(battle);

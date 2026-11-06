@@ -326,6 +326,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
                     Type = defCondition.Type,
                     Target = defCondition.Target,
                     Value = defCondition.Value,
+                    ReferenceID = defCondition.ReferenceID,
                 };
             }
         }
@@ -357,6 +358,7 @@ public class ContentDefinitionBaker : Baker<ContentDefinitionAuthoring>
 
                 A = defInstr.A,
                 B = defInstr.B,
+                C = defInstr.C,
 
                 Flags = defInstr.Flags,
             };

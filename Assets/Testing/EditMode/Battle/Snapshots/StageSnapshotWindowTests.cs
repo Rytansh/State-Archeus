@@ -94,5 +94,24 @@ namespace Archeus.Testing.Battle.Snapshots
                 window.Commit();
             }
         }
+
+        [Test]
+        public void SameTurnAndStageCannotRestoreAnotherContextOrPhaseEntry()
+        {
+            var window = new StageSnapshotWindow();
+            window.Open(42, 1001, 5, ProvisionalStage.Planning, 7, 12);
+            Assert.That(
+                window.CanRestore(window.Revision, 42, 1001, 5, ProvisionalStage.Planning, 7, 12),
+                Is.True
+            );
+            Assert.That(
+                window.CanRestore(window.Revision, 42, 1001, 5, ProvisionalStage.Planning, 8, 12),
+                Is.False
+            );
+            Assert.That(
+                window.CanRestore(window.Revision, 42, 1001, 5, ProvisionalStage.Planning, 7, 13),
+                Is.False
+            );
+        }
     }
 }

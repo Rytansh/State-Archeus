@@ -17,8 +17,17 @@ namespace Archeus.Battle.Snapshots
         public int Turn { get; private set; }
         public ProvisionalStage Stage { get; private set; }
         public bool IsValid { get; private set; }
+        public uint ContextID { get; private set; }
+        public uint PhaseEpoch { get; private set; }
 
-        public void Open(ulong battleID, ulong playerID, int turn, ProvisionalStage stage)
+        public void Open(
+            ulong battleID,
+            ulong playerID,
+            int turn,
+            ProvisionalStage stage,
+            uint contextID = 0,
+            uint phaseEpoch = 0
+        )
         {
             if (Revision == ulong.MaxValue)
                 throw new InvalidOperationException("Snapshot revision exhausted.");
@@ -27,6 +36,8 @@ namespace Archeus.Battle.Snapshots
             PlayerID = playerID;
             Turn = turn;
             Stage = stage;
+            ContextID = contextID;
+            PhaseEpoch = phaseEpoch;
             IsValid = true;
         }
 
@@ -35,7 +46,9 @@ namespace Archeus.Battle.Snapshots
             ulong battleID,
             ulong playerID,
             int turn,
-            ProvisionalStage stage
+            ProvisionalStage stage,
+            uint contextID = 0,
+            uint phaseEpoch = 0
         )
         {
             return IsValid
@@ -43,7 +56,9 @@ namespace Archeus.Battle.Snapshots
                 && battleID == BattleID
                 && playerID == PlayerID
                 && turn == Turn
-                && stage == Stage;
+                && stage == Stage
+                && contextID == ContextID
+                && phaseEpoch == PhaseEpoch;
         }
 
         public void Commit() => IsValid = false;

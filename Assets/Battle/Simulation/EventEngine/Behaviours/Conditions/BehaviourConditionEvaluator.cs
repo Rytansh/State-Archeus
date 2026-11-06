@@ -67,6 +67,11 @@ namespace Archeus.Battle.VM.Execution
         {
             switch (condition.Type)
             {
+                case ConditionType.RuntimeIDEquals:
+                    return ctx.CardRuntimeIDLookup.HasComponent(targetEntity)
+                        && ctx.CardRuntimeIDLookup[targetEntity].Value == condition.ReferenceID;
+                case ConditionType.ActionTypeEquals:
+                    return (uint)tiedEvent.ActionData.ActionType == condition.ReferenceID;
                 case ConditionType.HPBelowPercent:
                 {
                     if (!ctx.HealthLookup.HasComponent(targetEntity))
@@ -118,7 +123,7 @@ namespace Archeus.Battle.VM.Execution
                 }
 
                 default:
-                    return true;
+                    return false;
             }
         }
 

@@ -1,6 +1,6 @@
-using UnityEngine;
 using System.Collections.Generic;
 using Archeus.Battle.Data.Events;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "BehaviourDefinition", menuName = "Definition/Behaviour")]
 public class BehaviourDefinition : ScriptableObject
@@ -30,6 +30,5 @@ public class EventConditionDefinition
 
     [Tooltip("Used for numeric comparisons (%, stacks, etc.)")]
     public float Value;
+    public uint ReferenceID;
 }
-
-

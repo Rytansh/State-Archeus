@@ -32,6 +32,10 @@ namespace Archeus.Battle.Events.Resolvers
             // Apply the damage
             hp.Value = Math.Max(0f, hp.Value - damageToApply);
             ctx.HealthLookup[target] = hp;
+            Archeus.Battle.Scheduling.ActionResolution.MarkApplied(
+                ref ctx,
+                evt.ActionData.ActionExecutionID
+            );
 
             float maxHealth = StatResolver.Resolve(target, StatType.MaxHealth, ref ctx);
             float hpPercent = hp.Value / maxHealth * 100f;
@@ -75,7 +79,7 @@ namespace Archeus.Battle.Events.Resolvers
                 GroupID = evt.StructuralData.GroupID,
                 Generation = evt.StructuralData.Generation,
 
-                ActionDefinitionID = 0,
+                ActionDefinitionID = evt.ActionData.ActionDefinitionID,
                 ActionExecutionID = evt.ActionData.ActionExecutionID,
                 ActionResultIndex = evt.ActionData.ActionResultGroupIndex,
                 HitIndex = evt.ActionData.HitIndex,

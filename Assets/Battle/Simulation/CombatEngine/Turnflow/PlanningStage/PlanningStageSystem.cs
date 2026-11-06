@@ -11,6 +11,7 @@ using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Factory;
 using Archeus.Battle.Events.Payloads;
 using Archeus.Battle.Runtime;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -26,8 +27,6 @@ namespace Archeus.Battle.Systems.Turnflow
             EntityCommandBuffer ecb = new EntityCommandBuffer(Allocator.Temp);
 
             ProcessEndPlanningRequests(ref state, ecb);
-            //planning phase should not perform actions, only calculate action points, etc, and check if actions can be performed
-            //all actions should be added to a queue later
 
             ecb.Playback(state.EntityManager);
             ecb.Dispose();
@@ -56,6 +55,29 @@ namespace Archeus.Battle.Systems.Turnflow
                     continue;
                 }
 
+                if (
+                    ActionQueueService.TryActive(
+                        state.EntityManager,
+                        battle,
+                        out Entity context,
+                        out var data
+                    )
+                    && data.ExecutionType == AttackingStageExecutionType.ExtraAction
+                )
+                {
+                    int manual = 0;
+                    foreach (var action in SystemAPI.GetBuffer<PlannedAction>(context))
+                        if (
+                            action.Origin == ActionOrigin.PlayerPlanned
+                            && action.Source == data.ActingCharacter
+                        )
+                            manual++;
+                    if (manual != 1)
+                    {
+                        ecb.DestroyEntity(requestEntity);
+                        continue;
+                    }
+                }
                 ecb.AddComponent<BattlePlanningCompleteTag>(battle);
 
                 Logging.Info(

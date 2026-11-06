@@ -14,5 +14,12 @@ namespace Archeus.Battle.VM.Execution
         public int InstructionPointer;
         public FixedList64Bytes<float> Stack;
         public int StepsExecuted;
+        public bool Faulted;
+        public Entity InheritedSource;
+        public FixedList64Bytes<float> LocalMemory;
+        public int ControlPriority;
+        public uint ControlOwnerID;
+        public int ControlRegistration;
+        public int ControlTrigger;
     }
 }

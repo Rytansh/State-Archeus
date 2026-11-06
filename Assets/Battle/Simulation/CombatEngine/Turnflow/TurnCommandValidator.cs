@@ -1,6 +1,7 @@
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Unity.Entities;
 
@@ -41,6 +42,16 @@ namespace Archeus.Battle.Runtime
             BattleState battleState = entityManager.GetComponentData<BattleState>(battle);
 
             if (battleState.Phase != requiredPhase)
+                return false;
+            if (
+                Archeus.Battle.Systems.Setup.BattlePhaseTransitionSystem.ShouldSkip(
+                    entityManager,
+                    battle,
+                    requiredPhase
+                )
+            )
+                return false;
+            if (!ActionQueueService.Healthy(entityManager, battle))
                 return false;
 
             if (

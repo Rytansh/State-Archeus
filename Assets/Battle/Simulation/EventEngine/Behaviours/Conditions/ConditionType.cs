@@ -8,19 +8,21 @@ namespace Archeus.Battle.Data.Events
         HPAboveFlat,
         DamageAbove,
         DamageBelow,
+        RuntimeIDEquals,
+        ActionTypeEquals,
     }
+
     public enum ConditionTarget
     {
         Self,
         Target,
-        Source
+        Source,
     }
 
     public enum TriggerOwnerType
     {
         Any,
         Source,
-        Target
+        Target,
     }
-
 }

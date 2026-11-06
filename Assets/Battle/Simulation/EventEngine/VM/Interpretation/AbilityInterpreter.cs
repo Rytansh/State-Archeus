@@ -1,5 +1,6 @@
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Components.Ownership;
+using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Data.VM;
 using Archeus.Battle.Events.Context;
@@ -26,6 +27,8 @@ namespace Archeus.Battle.VM.Execution
 
             while (frame.InstructionPointer < program.Instructions.Length)
             {
+                if (frame.InstructionPointer < 0 || frame.Faulted)
+                    return AbilityExecutionResult.Aborted;
                 if (++frame.StepsExecuted > MAX_VM_STEPS)
                 {
                     Logging.Warn(LogCategory.VM, "VM exceeded maximum instruction count.");
@@ -85,9 +88,11 @@ namespace Archeus.Battle.VM.Execution
                     {
                         int index = instruction.A;
 
-                        var state = context.StateBuffer[context.StateIndex];
-
-                        float value = (index < state.Memory.Length) ? state.Memory[index] : 0f;
+                        var memory =
+                            context.StateIndex < 0
+                                ? frame.LocalMemory
+                                : context.StateBuffer[context.StateIndex].Memory;
+                        float value = (index >= 0 && index < memory.Length) ? memory[index] : 0f;
 
                         Push(ref frame, value);
                         break;
@@ -98,15 +103,24 @@ namespace Archeus.Battle.VM.Execution
                         int index = instruction.A;
                         float value = Pop(ref frame);
 
-                        var state = context.StateBuffer[context.StateIndex];
-
-                        while (state.Memory.Length <= index)
+                        var memory =
+                            context.StateIndex < 0
+                                ? frame.LocalMemory
+                                : context.StateBuffer[context.StateIndex].Memory;
+                        if (index < 0 || index >= memory.Capacity)
+                            return AbilityExecutionResult.Aborted;
+                        while (memory.Length <= index)
                         {
-                            state.Memory.Add(0f);
+                            memory.Add(0f);
                         }
-
-                        state.Memory[index] = value;
-                        context.StateBuffer[context.StateIndex] = state;
+                        memory[index] = value;
+                        if (context.StateIndex < 0)
+                            frame.LocalMemory = memory;
+                        else
+                            context.StateBuffer[context.StateIndex] = new BehaviourRuntimeState
+                            {
+                                Memory = memory,
+                            };
 
                         break;
                     }
@@ -231,9 +245,41 @@ namespace Archeus.Battle.VM.Execution
 
                     // GAMEPLAY OPCODES //
 
+                    case AbilityOpcode.RequestActionControl:
+                    {
+                        Archeus.Battle.Scheduling.ActionControlVm.Emit(
+                            in instruction,
+                            ref frame,
+                            ref context,
+                            in evt
+                        );
+                        break;
+                    }
+                    case AbilityOpcode.PushInheritedStat:
+                    {
+                        float value = 0;
+                        if (context.CharacterStatsLookup.HasComponent(frame.InheritedSource))
+                        {
+                            var inherited = context.CharacterStatsLookup[frame.InheritedSource];
+                            value =
+                                instruction.A == 0 ? inherited.Attack
+                                : instruction.A == 1 ? inherited.Defense
+                                : inherited.MaxHealth;
+                        }
+                        Push(ref frame, value);
+                        break;
+                    }
+
                     case AbilityOpcode.DealDamage:
                     {
                         float multiplier = Pop(ref frame);
+                        if (
+                            frame.Faulted
+                            || float.IsNaN(multiplier)
+                            || float.IsInfinity(multiplier)
+                            || multiplier < 0
+                        )
+                            return AbilityExecutionResult.Aborted;
 
                         foreach (Entity target in frame.Targets)
                         {
@@ -385,6 +431,8 @@ namespace Archeus.Battle.VM.Execution
                     }
                 }
 
+                if (frame.Faulted)
+                    return AbilityExecutionResult.Aborted;
                 frame.InstructionPointer++;
 
                 if (beganGameplayOperation)
@@ -405,8 +453,13 @@ namespace Archeus.Battle.VM.Execution
 
         private static void Push(ref AbilityExecutionFrame frame, float value)
         {
-            if (frame.Stack.Length >= 32)
+            if (
+                frame.Stack.Length >= frame.Stack.Capacity
+                || float.IsNaN(value)
+                || float.IsInfinity(value)
+            )
             {
+                frame.Faulted = true;
                 Logging.Warn(LogCategory.VM, "VM stack overflow.");
                 return;
             }
@@ -417,6 +470,7 @@ namespace Archeus.Battle.VM.Execution
         {
             if (frame.Stack.Length == 0)
             {
+                frame.Faulted = true;
                 Logging.Warn(LogCategory.VM, "VM stack underflow.");
                 return 0;
             }
@@ -432,6 +486,7 @@ namespace Archeus.Battle.VM.Execution
         {
             if (frame.Stack.Length == 0)
             {
+                frame.Faulted = true;
                 Logging.Warn(LogCategory.VM, "VM stack underflow.");
                 return 0;
             }

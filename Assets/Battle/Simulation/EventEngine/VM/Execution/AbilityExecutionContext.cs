@@ -26,5 +26,7 @@ namespace Archeus.Battle.VM.Execution
         public int StateIndex;
 
         public EventEmissionContext EmissionContext;
+        public EntityManager Entities;
+        public Entity Battle;
     }
 }

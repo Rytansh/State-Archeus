@@ -125,6 +125,13 @@ namespace Archeus.Battle.Systems.Presentation
             ApplyCardStates(cards);
             ApplyHandStates(hands);
 
+            var actionOrder = ActionOrderMirrorAccess.Get(EntityManager);
+            if (
+                actionOrder.State != null
+                && actionOrder.State.BattleID != snapshot.Battle.BattleRuntimeID
+            )
+                actionOrder.Transitions.Clear();
+            actionOrder.State = snapshot.ActionOrder;
             ApplyMirrorRevision(snapshot.Battle.BattleRuntimeID, snapshot.Revision);
 
             Logging.Info(

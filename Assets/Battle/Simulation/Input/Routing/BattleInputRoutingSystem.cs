@@ -5,6 +5,7 @@ using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Input;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Archeus.Core.Debugging;
 using Unity.Collections;
@@ -73,11 +74,34 @@ namespace Archeus.Battle.Systems.Input
             StageSnapshotStatus status = state.EntityManager.GetComponentData<StageSnapshotStatus>(
                 context.Battle
             );
-            if (!status.IsValid || status.Revision != command.StageRevision)
+            if (
+                !ActionQueueService.Healthy(state.EntityManager, context.Battle)
+                || !ActionQueueService.TryActive(
+                    state.EntityManager,
+                    context.Battle,
+                    out _,
+                    out var active
+                )
+                || active.ContextID != command.ContextID
+                || state.EntityManager.GetComponentData<BattlePhaseEpoch>(context.Battle).Value
+                    != command.PhaseEpoch
+            )
+                return;
+            if (
+                command.Type != BattleInputCommandType.DebugSchedulerControl
+                && (!status.IsValid || status.Revision != command.StageRevision)
+            )
                 return;
 
             switch (command.Type)
             {
+                case BattleInputCommandType.QueueAction:
+                case BattleInputCommandType.RemoveAction:
+                case BattleInputCommandType.MoveAction:
+                case BattleInputCommandType.SelectInterrupt:
+                case BattleInputCommandType.DebugSchedulerControl:
+                    SchedulerInputHandler.Handle(state.EntityManager, command, context);
+                    break;
                 // Drawing
                 case BattleInputCommandType.DrawCards:
                 case BattleInputCommandType.PlaceCard:
@@ -168,6 +192,11 @@ namespace Archeus.Battle.Systems.Input
             var status = entities.GetComponentData<StageSnapshotStatus>(context.Battle);
             var phase = entities.GetComponentData<BattleState>(context.Battle).Phase;
             return status.IsValid
+                && ActionQueueService.Healthy(entities, context.Battle)
+                && ActionQueueService.TryActive(entities, context.Battle, out _, out var active)
+                && active.ContextID == command.ContextID
+                && entities.GetComponentData<BattlePhaseEpoch>(context.Battle).Value
+                    == command.PhaseEpoch
                 && status.Revision == command.StageRevision
                 && entities.GetComponentData<ActiveTurnPlayer>(context.Battle).Player
                     == context.Player

@@ -7,6 +7,7 @@ using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Presentation.State;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Archeus.Game.Bootstrap;
 using Unity.Collections;
@@ -120,6 +121,7 @@ namespace Archeus.Battle.Systems.Presentation
                     Characters = characters.ToArray(),
                     Cards = cards.ToArray(),
                     Hands = hands.ToArray(),
+                    ActionOrder = ActionOrderPublication.Capture(EntityManager, battle),
                 };
 
                 bridge.PublishRecoveryStateSnapshot(snapshot);

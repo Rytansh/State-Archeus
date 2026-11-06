@@ -1,4 +1,5 @@
 using System;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Snapshots;
 using Archeus.Battle.Systems.Actions;
 using Archeus.Battle.Systems.Effects;
@@ -58,6 +59,7 @@ namespace Archeus.Game.Bootstrap
                 typeof(BattlePhaseTransitionSystem),
                 typeof(BattleStageSnapshotSystem),
                 typeof(BattleStageRevertSystem),
+                typeof(ActionControlSystem),
                 typeof(BattleCreationSystem),
                 typeof(RosterInitialisationSystem),
                 typeof(BattleReadinessSystem),
@@ -76,6 +78,7 @@ namespace Archeus.Game.Bootstrap
                 typeof(PresentationFactExportSystem),
                 typeof(PresentationSnapshotExportSystem),
                 typeof(PresentationUpdateExportSystem),
+                typeof(Archeus.Battle.Systems.Presentation.ActionOrderExportSystem),
                 typeof(PresentationStateRecoverySystem),
                 // Input
                 typeof(BattleInputRoutingSystem),

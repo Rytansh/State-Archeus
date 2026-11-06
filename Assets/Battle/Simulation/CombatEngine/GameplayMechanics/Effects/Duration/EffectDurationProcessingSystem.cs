@@ -6,6 +6,7 @@ using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.Systems.Turnflow;
 using Archeus.Core.Debugging;
 using Unity.Collections;
@@ -29,6 +30,22 @@ namespace Archeus.Battle.Systems.Effects
                     .WithEntityAccess()
             )
             {
+                if (
+                    state.EntityManager.HasComponent<ActionSchedulerState>(battle)
+                    && (
+                        !ActionQueueService.TryActive(
+                            state.EntityManager,
+                            battle,
+                            out _,
+                            out var context
+                        )
+                        || context.ExecutionType != AttackingStageExecutionType.NormalTurn
+                    )
+                )
+                {
+                    ecb.RemoveComponent<EffectDurationsProcessingTag>(battle);
+                    continue;
+                }
                 using var holders = state.EntityManager.CreateEntityQuery(
                     ComponentType.ReadOnly<OwnedBattle>(),
                     ComponentType.ReadWrite<ActiveEffect>()

@@ -1,13 +1,15 @@
-using Unity.Entities;
-using Archeus.Content.Lookup;
 using Archeus.Battle.Data.Events;
+using Archeus.Content.Lookup;
+using Unity.Entities;
 
 namespace Archeus.Content.Blobs
 {
     public struct BehaviourDefinitionBlob : IHasID
     {
         public uint ID;
+
         public uint GetID() => ID;
+
         public BlobArray<BehaviourTriggerBlob> Triggers;
     }
 
@@ -26,5 +28,6 @@ namespace Archeus.Content.Blobs
         public ConditionType Type;
         public ConditionTarget Target;
         public float Value;
+        public uint ReferenceID;
     }
 }

@@ -1,7 +1,9 @@
 using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Buffers.VM;
+using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Events.Context;
+using Archeus.Battle.Scheduling;
 using Archeus.Content.Blobs;
 using Archeus.Content.Registries;
 using Archeus.Core.Debugging;
@@ -21,12 +23,17 @@ namespace Archeus.Battle.VM.Execution
         {
             ref ContentBlobRegistry registry = ref ctx.BattleRegistryReference.Value;
 
-            ref BehaviourDefinitionBlob behaviour = ref registry.Behaviours[request.BehaviourIndex];
-
-            ref BehaviourTriggerBlob trigger = ref behaviour.Triggers[request.TriggerIndex];
-
-            int stateIndex = request.RegistrationIndex;
-            int programIndex = trigger.VMProgramIndex;
+            int stateIndex = request.IsActionProgram ? -1 : request.RegistrationIndex;
+            int programIndex;
+            if (request.IsActionProgram)
+                programIndex = request.ProgramIndex;
+            else
+            {
+                ref BehaviourDefinitionBlob behaviour = ref registry.Behaviours[
+                    request.BehaviourIndex
+                ];
+                programIndex = behaviour.Triggers[request.TriggerIndex].VMProgramIndex;
+            }
 
             frame = default;
 
@@ -52,13 +59,59 @@ namespace Archeus.Battle.VM.Execution
 
                 InstructionPointer = 0,
                 StepsExecuted = 0,
+                InheritedSource = evt.ActionData.InheritedSource,
+                ControlPriority = request.Priority,
+                ControlOwnerID = request.OwnerRuntimeID,
+                ControlRegistration = request.RegistrationIndex,
+                ControlTrigger = request.TriggerIndex,
             };
 
             if (request.Target != Entity.Null)
             {
                 frame.Targets.Add(request.Target);
             }
+            if (request.IsActionProgram)
+            {
+                int execution = ActionResolution.Find(
+                    ctx.ActionExecutionStates,
+                    evt.ActionData.ActionExecutionID
+                );
+                if (
+                    execution >= 0
+                    && ctx.ActionExecutionStates[execution].Action.TargetMode
+                        == ActionTargetMode.AllEnemies
+                )
+                {
+                    frame.Targets.Clear();
+                    Entity owner = ctx.Entities.GetComponentData<CardOwner>(request.Source).Player;
+                    foreach (var participant in ctx.Participants)
+                    {
+                        Entity target = participant.Participant;
+                        if (
+                            !ActionQueueService.Belongs(ctx.Entities, target, ctx.Battle)
+                            || !ctx.Entities.HasComponent<CardOwner>(target)
+                        )
+                            continue;
+                        Entity targetOwner = ctx
+                            .Entities.GetComponentData<CardOwner>(target)
+                            .Player;
+                        if (
+                            targetOwner == owner
+                            || !ActionQueueService.IsLivingFieldActor(
+                                ctx.Entities,
+                                target,
+                                ctx.Battle
+                            )
+                        )
+                            continue;
+                        if (frame.Targets.Length >= frame.Targets.Capacity)
+                            return AbilityExecutionResult.Aborted;
+                        frame.Targets.Add(target);
+                    }
+                }
+            }
 
+            AbilityInterpreterTooling.SortTargets(ref frame, ctx.Entities);
             return ExecuteFrame(
                 ref frame,
                 stateIndex,
@@ -91,6 +144,8 @@ namespace Archeus.Battle.VM.Execution
                 TeamLookup = ctx.TeamLookup,
                 CurrentHealthLookup = ctx.HealthLookup,
                 EmissionContext = emissionContext,
+                Entities = ctx.Entities,
+                Battle = ctx.Battle,
             };
 
             return AbilityInterpreter.Execute(ref frame, ref context, ref evt);

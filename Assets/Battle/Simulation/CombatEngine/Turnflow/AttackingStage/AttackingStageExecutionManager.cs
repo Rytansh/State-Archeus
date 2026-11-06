@@ -1,194 +1,225 @@
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Tags;
+using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Presentation.State;
+using Archeus.Battle.Scheduling;
 using Unity.Entities;
 
 namespace Archeus.Battle.Runtime
 {
-    /// <summary>
-    /// Low-level, synchronous state commits. These are NOT event/command consumers.
-    /// The authoritative BattlePhaseTransitionSystem will eventually validate requests,
-    /// ensure combat has settled, and invoke these operations at a safe update boundary.
-    /// Each successful switch changes context, battle phase, and epoch together.
-    /// </summary>
+    /// <summary>Synchronous commits owned by BattlePhaseTransitionSystem. Call only outside live queries.</summary>
     public static class AttackingStageExecutionManager
     {
-        private static bool TryReadBattle(
-            EntityManager em,
-            Entity battle,
-            out BattleState phase,
-            out AttackingStageExecutionInstance active,
-            out BattlePhaseEpoch epoch
-        )
+        public static void ClearCompletionTags(EntityManager em, Entity battle)
         {
-            phase = default;
-            active = default;
-            epoch = default;
-            if (
-                battle == Entity.Null
-                || !em.Exists(battle)
-                || !em.HasComponent<BattleTag>(battle)
-                || !em.HasComponent<BattleState>(battle)
-                || !em.HasComponent<AttackingStageExecutionInstance>(battle)
-                || !em.HasComponent<BattlePhaseEpoch>(battle)
-            )
-                return false;
-
-            phase = em.GetComponentData<BattleState>(battle);
-            active = em.GetComponentData<AttackingStageExecutionInstance>(battle);
-            epoch = em.GetComponentData<BattlePhaseEpoch>(battle);
-            return epoch.Value != uint.MaxValue;
+            em.RemoveComponent<BattleTurnStartCompleteTag>(battle);
+            em.RemoveComponent<BattleDrawingCompleteTag>(battle);
+            em.RemoveComponent<BattlePlanningCompleteTag>(battle);
+            em.RemoveComponent<BattleAttackingCompleteTag>(battle);
+            em.RemoveComponent<BattleTurnEndCompleteTag>(battle);
+            em.RemoveComponent<EffectDurationsProcessingTag>(battle);
         }
 
-        private static bool TryReadContext(
+        public static bool SetPhase(EntityManager em, Entity battle, BattlePhase phase)
+        {
+            if (!em.HasComponent<BattlePhaseEpoch>(battle))
+                return false;
+            var epoch = em.GetComponentData<BattlePhaseEpoch>(battle);
+            if (epoch.Value == uint.MaxValue)
+            {
+                ActionQueueService.Fail(em, battle, SchedulerFailure.IdentityExhausted);
+                return false;
+            }
+            ClearCompletionTags(em, battle);
+            epoch.Value++;
+            em.SetComponentData(battle, epoch);
+            em.SetComponentData(battle, new BattleState { Phase = phase });
+            return true;
+        }
+
+        private static bool Context(
             EntityManager em,
-            Entity context,
+            Entity entity,
             Entity battle,
             out AttackingStageExecutionContext data
         )
         {
             data = default;
             if (
-                context == Entity.Null
-                || !em.Exists(context)
-                || !em.HasComponent<AttackingStageExecutionContext>(context)
-                || !em.HasBuffer<PlannedAction>(context)
+                !ActionQueueService.Belongs(em, entity, battle)
+                || !em.HasComponent<AttackingStageExecutionContext>(entity)
+                || !em.HasBuffer<PlannedAction>(entity)
             )
                 return false;
-
-            data = em.GetComponentData<AttackingStageExecutionContext>(context);
+            data = em.GetComponentData<AttackingStageExecutionContext>(entity);
             return data.Battle == battle;
         }
 
-        private static void CommitPhase(
-            EntityManager em,
-            Entity battle,
-            BattleState phase,
-            BattlePhaseEpoch epoch
-        )
-        {
-            epoch.Value++;
-            em.SetComponentData(battle, phase);
-            em.SetComponentData(battle, epoch);
-        }
-
-        /// <summary>
-        /// Enter a normal counted turn. Called on Setup->TurnStart or TurnEnd->TurnStart
-        /// AFTER turn ownership has been determined. Does not increment TurnCounter.
-        /// </summary>
         public static bool TryActivateRoot(EntityManager em, Entity battle, Entity root)
         {
             if (
-                !TryReadBattle(em, battle, out var phase, out var active, out var epoch)
-                || active.Context != Entity.Null
-                || (phase.Phase != BattlePhase.Setup && phase.Phase != BattlePhase.TurnEnd)
-                || !TryReadContext(em, root, battle, out var data)
+                !em.Exists(battle)
+                || !em.HasComponent<AttackingStageExecutionInstance>(battle)
+                || !em.HasComponent<BattlePhaseEpoch>(battle)
+                || em.GetComponentData<BattlePhaseEpoch>(battle).Value == uint.MaxValue
+                || em.GetComponentData<AttackingStageExecutionInstance>(battle).Context
+                    != Entity.Null
+                || !Context(em, root, battle, out var data)
                 || data.ParentContext != Entity.Null
                 || data.ExecutionType != AttackingStageExecutionType.NormalTurn
                 || data.ExecutionStatus != AttackingStageExecutionStatus.Created
             )
                 return false;
-
+            BattlePhase phase = em.GetComponentData<BattleState>(battle).Phase;
+            if (phase != BattlePhase.Setup && phase != BattlePhase.TurnEnd)
+                return false;
             data.ExecutionStatus = AttackingStageExecutionStatus.Active;
-            active.Context = root;
-            phase.Phase = BattlePhase.TurnStart;
             em.SetComponentData(root, data);
-            em.SetComponentData(battle, active);
-            CommitPhase(em, battle, phase, epoch);
-            return true;
+            em.SetComponentData(battle, new AttackingStageExecutionInstance { Context = root });
+            SetActivePlayer(em, battle, data.ActingPlayer);
+            return SetPhase(em, battle, BattlePhase.TurnStart);
         }
 
-        /// <summary>
-        /// Start an already-created child after the parent action and its event work
-        /// have fully settled. The calling controller must validate that condition.
-        /// </summary>
         public static bool TryBeginChild(EntityManager em, Entity battle, Entity child)
         {
             if (
-                !TryReadBattle(em, battle, out var phase, out var active, out var epoch)
-                || phase.Phase != BattlePhase.Attacking
-                || !TryReadContext(em, active.Context, battle, out var parentData)
-                || !TryReadContext(em, child, battle, out var childData)
-                || active.Context == child
-                || parentData.ExecutionStatus != AttackingStageExecutionStatus.Active
-                || childData.ExecutionStatus != AttackingStageExecutionStatus.Created
-                || childData.ParentContext != active.Context
+                !ActionQueueService.IsSettled(em, battle)
+                || !em.HasComponent<BattlePhaseEpoch>(battle)
+                || em.GetComponentData<BattlePhaseEpoch>(battle).Value == uint.MaxValue
+                || em.GetComponentData<BattleState>(battle).Phase != BattlePhase.Attacking
+                || !ActionQueueService.TryActive(em, battle, out Entity parent, out var parentData)
+                || !Context(em, child, battle, out var childData)
+                || childData.ParentContext != parent
                 || childData.ExecutionType == AttackingStageExecutionType.NormalTurn
+                || childData.ExecutionStatus != AttackingStageExecutionStatus.Created
             )
                 return false;
-
-            // All validation precedes mutation. No other ECS system observes the
-            // intermediate SetComponentData writes during this synchronous call.
-            parentData.DeferredPhase = phase.Phase;
+            parentData.DeferredPhase = BattlePhase.Attacking;
+            parentData.RemainingActionPoints = em.GetComponentData<RemainingActionPoints>(
+                parentData.ActingPlayer
+            ).Value;
             parentData.ExecutionStatus = AttackingStageExecutionStatus.Suspended;
             childData.ExecutionStatus = AttackingStageExecutionStatus.Active;
-            active.Context = child;
-            phase.Phase =
-                childData.ExecutionType == AttackingStageExecutionType.ExtraTurn
-                    ? BattlePhase.Drawing
-                    : BattlePhase.Planning;
-
-            em.SetComponentData(childData.ParentContext, parentData);
+            childData.RemainingActionPoints =
+                childData.ExecutionType == AttackingStageExecutionType.ExtraAction ? 1 : 4;
+            em.SetComponentData(parent, parentData);
             em.SetComponentData(child, childData);
-            em.SetComponentData(battle, active);
-            CommitPhase(em, battle, phase, epoch);
-            return true;
+            em.SetComponentData(
+                childData.ActingPlayer,
+                new RemainingActionPoints { Value = childData.RemainingActionPoints }
+            );
+            em.SetComponentData(battle, new AttackingStageExecutionInstance { Context = child });
+            SetActivePlayer(em, battle, childData.ActingPlayer);
+            ActionOrderPublication.EmitContext(
+                em,
+                battle,
+                SchedulerFactKind.ContextSuspended,
+                parentData
+            );
+            ActionOrderPublication.EmitContext(
+                em,
+                battle,
+                SchedulerFactKind.ContextActivated,
+                childData
+            );
+            return SetPhase(
+                em,
+                battle,
+                childData.ExecutionType == AttackingStageExecutionType.ExtraAction
+                    ? BattlePhase.Planning
+                    : BattlePhase.Drawing
+            );
         }
 
-        /// <summary>
-        /// Finish the active Extra Action/Turn and return to its direct parent.
-        /// Caller must prove the child Attacking stage has completed, including
-        /// outstanding interrupts. This helper does not inspect event queues.
-        /// </summary>
         public static bool TryCompleteChildAndResume(EntityManager em, Entity battle)
         {
             if (
-                !TryReadBattle(em, battle, out var phase, out var active, out var epoch)
-                || phase.Phase != BattlePhase.Attacking
-                || !TryReadContext(em, active.Context, battle, out var childData)
-                || childData.ExecutionType == AttackingStageExecutionType.NormalTurn
-                || childData.ExecutionStatus != AttackingStageExecutionStatus.Active
-                || !TryReadContext(em, childData.ParentContext, battle, out var parentData)
-                || parentData.ExecutionStatus != AttackingStageExecutionStatus.Suspended
-                || parentData.DeferredPhase != BattlePhase.Attacking
+                !ActionQueueService.IsSettled(em, battle)
+                || !em.HasComponent<BattlePhaseEpoch>(battle)
+                || em.GetComponentData<BattlePhaseEpoch>(battle).Value == uint.MaxValue
+                || em.GetComponentData<BattleState>(battle).Phase != BattlePhase.Attacking
+                || !ActionQueueService.TryActive(em, battle, out Entity child, out var data)
+                || data.ExecutionType == AttackingStageExecutionType.NormalTurn
+                || em.GetBuffer<PlannedAction>(child).Length != 0
+                || !Context(em, data.ParentContext, battle, out var parent)
+                || parent.ExecutionStatus != AttackingStageExecutionStatus.Suspended
             )
                 return false;
-
-            Entity child = active.Context;
-            Entity parent = childData.ParentContext;
-            childData.ExecutionStatus = AttackingStageExecutionStatus.Completed;
-            parentData.ExecutionStatus = AttackingStageExecutionStatus.Active;
-            active.Context = parent;
-            phase.Phase = parentData.DeferredPhase;
-
-            em.SetComponentData(parent, parentData);
-            em.SetComponentData(child, childData);
-            em.SetComponentData(battle, active);
-            CommitPhase(em, battle, phase, epoch);
-            return true;
+            data.RemainingActionPoints = em.GetComponentData<RemainingActionPoints>(
+                data.ActingPlayer
+            ).Value;
+            data.ExecutionStatus = AttackingStageExecutionStatus.Completed;
+            if (em.HasBuffer<ArmedActionControl>(battle))
+            {
+                var armed = em.GetBuffer<ArmedActionControl>(battle);
+                for (int i = armed.Length - 1; i >= 0; i--)
+                    if (armed[i].Request.ContextID == data.ContextID)
+                        armed.RemoveAt(i);
+            }
+            if (em.HasBuffer<PendingStageSkip>(battle))
+            {
+                var skips = em.GetBuffer<PendingStageSkip>(battle);
+                for (int i = skips.Length - 1; i >= 0; i--)
+                    if (skips[i].ContextID == data.ContextID)
+                        skips.RemoveAt(i);
+            }
+            parent.ExecutionStatus = AttackingStageExecutionStatus.Active;
+            em.SetComponentData(child, data);
+            em.SetComponentData(data.ParentContext, parent);
+            em.SetComponentData(
+                parent.ActingPlayer,
+                new RemainingActionPoints { Value = parent.RemainingActionPoints }
+            );
+            em.SetComponentData(
+                battle,
+                new AttackingStageExecutionInstance { Context = data.ParentContext }
+            );
+            SetActivePlayer(em, battle, parent.ActingPlayer);
+            ActionOrderPublication.EmitContext(
+                em,
+                battle,
+                SchedulerFactKind.ContextCompleted,
+                data
+            );
+            ActionOrderPublication.EmitContext(
+                em,
+                battle,
+                SchedulerFactKind.ContextResumed,
+                parent
+            );
+            return SetPhase(em, battle, BattlePhase.Attacking);
         }
 
-        /// <summary>
-        /// Retire a completed normal turn. The controller later selects the next
-        /// turn owner and creates/activates the next normal root.
-        /// </summary>
         public static bool TryCompleteRoot(EntityManager em, Entity battle)
         {
             if (
-                !TryReadBattle(em, battle, out var phase, out var active, out _)
-                || phase.Phase != BattlePhase.TurnEnd
-                || !TryReadContext(em, active.Context, battle, out var data)
-                || data.ParentContext != Entity.Null
+                em.GetComponentData<BattleState>(battle).Phase != BattlePhase.TurnEnd
+                || !ActionQueueService.IsSettled(em, battle)
+                || !ActionQueueService.TryActive(em, battle, out Entity root, out var data)
                 || data.ExecutionType != AttackingStageExecutionType.NormalTurn
-                || data.ExecutionStatus != AttackingStageExecutionStatus.Active
             )
                 return false;
-
-            Entity root = active.Context;
             data.ExecutionStatus = AttackingStageExecutionStatus.Completed;
-            active.Context = Entity.Null;
             em.SetComponentData(root, data);
-            em.SetComponentData(battle, active);
+            em.SetComponentData(
+                battle,
+                new AttackingStageExecutionInstance { Context = Entity.Null }
+            );
+            ActionOrderPublication.EmitContext(
+                em,
+                battle,
+                SchedulerFactKind.ContextCompleted,
+                data
+            );
             return true;
+        }
+
+        private static void SetActivePlayer(EntityManager em, Entity battle, Entity player)
+        {
+            if (em.HasComponent<ActiveTurnPlayer>(battle))
+                em.SetComponentData(battle, new ActiveTurnPlayer { Player = player });
+            else
+                em.AddComponentData(battle, new ActiveTurnPlayer { Player = player });
         }
     }
 }

@@ -6,6 +6,7 @@ using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Data.Events;
 using Archeus.Battle.Events.Factory;
 using Archeus.Battle.Events.Payloads;
+using Archeus.Battle.Scheduling;
 using Archeus.Core.Debugging;
 using Unity.Collections;
 using Unity.Entities;
@@ -28,6 +29,24 @@ namespace Archeus.Battle.Systems.Turnflow
             )
             {
                 if (battleState.ValueRO.Phase != BattlePhase.TurnStart)
+                    continue;
+                if (
+                    Archeus.Battle.Systems.Setup.BattlePhaseTransitionSystem.ShouldSkip(
+                        state.EntityManager,
+                        battle,
+                        BattlePhase.TurnStart
+                    )
+                )
+                    continue;
+                if (
+                    !ActionQueueService.TryActive(
+                        state.EntityManager,
+                        battle,
+                        out _,
+                        out var context
+                    )
+                    || context.ExecutionType != AttackingStageExecutionType.NormalTurn
+                )
                     continue;
 
                 Entity player = activePlayer.ValueRO.Player;

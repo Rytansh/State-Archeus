@@ -74,6 +74,14 @@ namespace Archeus.Testing.Battle.Setup
                 em.GetComponentData<BattleState>(s.Battle).Phase,
                 Is.EqualTo(BattlePhase.TurnStart)
             );
+            Assert.That(
+                em.HasComponent<Archeus.Battle.Scheduling.ActionSchedulerCounters>(s.Battle),
+                Is.True
+            );
+            Assert.That(
+                em.HasBuffer<Archeus.Battle.Scheduling.ActionControlRequest>(s.Battle),
+                Is.True
+            );
             Assert.That(f.Count<BattleTag>(), Is.EqualTo(1));
             Assert.That(f.Count<PlayerTag>(), Is.EqualTo(2));
             Assert.That(f.Count<CharacterTag>(), Is.EqualTo(4));
@@ -268,7 +276,7 @@ namespace Archeus.Testing.Battle.Setup
             Assert.That(em.HasBuffer<ChainedBattleEvent>(battle), Is.True);
             Assert.That(
                 em.HasBuffer<Archeus.Battle.Buffers.Actions.ActionExecutionRequest>(battle),
-                Is.True
+                Is.False
             );
 
             Assert.That(f.Count<BattleTag>(), Is.EqualTo(1));

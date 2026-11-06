@@ -12,6 +12,11 @@ namespace Archeus.Battle.Buffers.Input
         EndDrawing,
         EndPlanning,
         RevertStage,
+        QueueAction,
+        RemoveAction,
+        MoveAction,
+        SelectInterrupt,
+        DebugSchedulerControl,
     }
 
     public struct BattleInputCommand : IBufferElementData
@@ -21,6 +26,15 @@ namespace Archeus.Battle.Buffers.Input
         public BattleSide Side;
         public BattleInputCommandType Type;
         public ulong StageRevision;
+        public uint ContextID;
+        public uint PhaseEpoch;
+        public uint TargetRuntimeID;
+        public uint QueueActionID;
+        public uint SelectionID;
+        public int Position;
+        public uint DefinitionID;
+        public Archeus.Battle.Data.Actions.CharacterActionType ActionType;
+        public Archeus.Battle.Scheduling.ActionControlKind ControlKind;
 
         public uint CardRuntimeID;
         public FieldPosition FieldPosition;

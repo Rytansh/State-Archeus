@@ -10,6 +10,7 @@ using Archeus.Battle.Components.Presentation;
 using Archeus.Battle.Components.Requests;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
+using Archeus.Battle.Scheduling;
 using Archeus.Content.Registries;
 using Archeus.Game.Bootstrap;
 using Unity.Collections;
@@ -116,6 +117,7 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddComponent(battle, new AttackingStageExecutionInstance { Context = Entity.Null });
             ecb.AddComponent(battle, new AttackingStageExecutionInstanceCounter { NextID = 1 });
             ecb.AddComponent(battle, new BattlePhaseEpoch { Value = 0 });
+            ActionQueueService.AddBattleData(ecb, battle);
             ecb.AddComponent(battle, new TurnCounter { CurrentTurn = 0 });
             ecb.AddComponent(
                 battle,
@@ -132,7 +134,6 @@ namespace Archeus.Battle.Systems.Setup
             ecb.AddBuffer<BattleEvent>(battle);
             ecb.AddBuffer<ChainedBattleEvent>(battle);
             ecb.AddBuffer<BehaviourExecutionRequest>(battle);
-            ecb.AddBuffer<ActionExecutionRequest>(battle);
             ecb.AddBuffer<ActionExecutionState>(battle);
 
             // PRESENTATION RELATED COMPONENTS / BUFFERS

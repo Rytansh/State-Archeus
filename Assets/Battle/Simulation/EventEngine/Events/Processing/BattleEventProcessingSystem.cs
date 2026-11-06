@@ -13,6 +13,7 @@ using Archeus.Battle.Events.Context;
 using Archeus.Battle.Events.Resolvers;
 using Archeus.Battle.Presentation.Factory;
 using Archeus.Battle.Presentation.Facts;
+using Archeus.Battle.Scheduling;
 using Archeus.Battle.VM.Execution;
 using Archeus.Content.Registries;
 using Archeus.Core.Debugging;
@@ -81,6 +82,11 @@ namespace Archeus.Battle.Systems.Events
             )
             {
                 if (
+                    state.EntityManager.HasComponent<ActionSchedulerState>(battle)
+                    && !ActionQueueService.Healthy(state.EntityManager, battle)
+                )
+                    continue;
+                if (
                     mainEventQueue.Length == 0
                     && chainedEventQueue.Length == 0
                     && executionRequestQueue.Length == 0
@@ -131,6 +137,8 @@ namespace Archeus.Battle.Systems.Events
 
                 BattleContext ctx = new BattleContext
                 {
+                    Entities = state.EntityManager,
+                    ExecutionRequests = executionRequestQueue,
                     Battle = battle,
                     BattleID = battleID,
 
@@ -165,6 +173,11 @@ namespace Archeus.Battle.Systems.Events
 
                 while (true)
                 {
+                    if (
+                        ctx.Entities.HasComponent<ActionSchedulerState>(battle)
+                        && !ActionQueueService.Healthy(ctx.Entities, battle)
+                    )
+                        break;
                     PromoteChainedEvents(chainedEventQueue, ref eventFrames, frameIDCounter);
 
                     if (
@@ -214,12 +227,14 @@ namespace Archeus.Battle.Systems.Events
                     {
                         Logging.Warn(
                             LogCategory.Event,
-                            "[Battle] Fatal error - TOO MANY EVENT EXECUTIONS - clearing."
+                            "[Battle] Event execution limit exceeded; scheduler halted."
                         );
 
-                        mainEventQueue.Clear();
-                        chainedEventQueue.Clear();
-                        executionRequestQueue.Clear();
+                        ActionQueueService.Fail(
+                            state.EntityManager,
+                            battle,
+                            SchedulerFailure.EventEngineUnsettled
+                        );
 
                         break;
                     }
@@ -265,13 +280,30 @@ namespace Archeus.Battle.Systems.Events
                     ProcessFrameStep(ref state, ref ctx, ref frame, executionRequestQueue);
                 }
 
-                EmitCompletedActionFacts(
-                    ref ctx,
-                    in eventFrames,
-                    chainedEventQueue,
-                    executionRequestQueue,
-                    in continuations
-                );
+                bool unsettled =
+                    continuations.Length != 0
+                    || chainedEventQueue.Length != 0
+                    || executionRequestQueue.Length != 0;
+                for (int pending = 0; pending < eventFrames.Length; pending++)
+                    if (!eventFrames[pending].Completed)
+                        unsettled = true;
+                if (unsettled)
+                    ActionQueueService.Fail(
+                        ctx.Entities,
+                        battle,
+                        SchedulerFailure.EventEngineUnsettled
+                    );
+                if (
+                    !ctx.Entities.HasComponent<ActionSchedulerState>(battle)
+                    || ActionQueueService.Healthy(ctx.Entities, battle)
+                )
+                    EmitCompletedActionFacts(
+                        ref ctx,
+                        in eventFrames,
+                        chainedEventQueue,
+                        executionRequestQueue,
+                        in continuations
+                    );
 
                 continuations.Dispose();
                 eventFrames.Dispose();
@@ -433,7 +465,7 @@ namespace Archeus.Battle.Systems.Events
 
                 BehaviourExecutionRequest currentBest = executionRequestQueue[bestIndex];
 
-                if (comparer.Compare(candidate, currentBest) > 0)
+                if (comparer.Compare(candidate, currentBest) < 0)
                 {
                     bestIndex = i;
                 }
@@ -465,14 +497,18 @@ namespace Archeus.Battle.Systems.Events
                 return;
             }
 
-            if (!behaviourStateLookup.HasBuffer(request.Owner))
+            if (!request.IsActionProgram && !behaviourStateLookup.HasBuffer(request.Owner))
             {
                 Logging.Warn(LogCategory.Event, "Missing BehaviourRuntimeState buffer.");
 
                 return;
             }
 
-            DynamicBuffer<BehaviourRuntimeState> stateBuffer = behaviourStateLookup[request.Owner];
+            DynamicBuffer<BehaviourRuntimeState> stateBuffer = behaviourStateLookup.HasBuffer(
+                request.Owner
+            )
+                ? behaviourStateLookup[request.Owner]
+                : default;
 
             ref EventFrame parentFrame = ref eventFrames.ElementAt(parentFrameIndex);
 
@@ -483,6 +519,12 @@ namespace Archeus.Battle.Systems.Events
                 stateBuffer,
                 out AbilityExecutionFrame executionFrame
             );
+            if (result.Status == AbilityExecutionStatus.Aborted)
+                ActionQueueService.Fail(
+                    ctx.Entities,
+                    ctx.Battle,
+                    SchedulerFailure.EventEngineUnsettled
+                );
 
             if (result.Status == AbilityExecutionStatus.Yielded)
             {
@@ -533,6 +575,31 @@ namespace Archeus.Battle.Systems.Events
                 {
                     if (!frame.PhaseStarted)
                     {
+                        if (
+                            frame.Event.Type == BattleEventType.ActionAttemptStarted
+                            && ctx.Entities.HasBuffer<ArmedActionControl>(ctx.Battle)
+                        )
+                        {
+                            var armed = ctx.Entities.GetBuffer<ArmedActionControl>(ctx.Battle);
+                            for (int i = 0; i < armed.Length; )
+                            {
+                                var request = armed[i].Request;
+                                if (request.ContextID != frame.Event.ActionData.ContextID)
+                                {
+                                    i++;
+                                    continue;
+                                }
+                                armed.RemoveAt(i);
+                                request.FrameID = frame.ID;
+                                request.ExecutionID = frame.Event.ActionData.ActionExecutionID;
+                                ActionControlProcessor.Enqueue(
+                                    ctx.Entities,
+                                    ctx.Battle,
+                                    request,
+                                    out _
+                                );
+                            }
+                        }
                         BuildExecutionRequests(
                             ref state,
                             ref ctx,
@@ -547,6 +614,12 @@ namespace Archeus.Battle.Systems.Events
                         return;
                     }
 
+                    ActionControlProcessor.ApplyFrame(ctx.Entities, ctx.Battle, frame.ID);
+                    if (ActionResolution.Suppress(ref ctx, frame.Event))
+                    {
+                        frame.Completed = true;
+                        return;
+                    }
                     frame.Phase = BattleEventPhase.Resolution;
 
                     frame.PhaseStarted = false;
@@ -573,6 +646,12 @@ namespace Archeus.Battle.Systems.Events
                         return;
                     }
 
+                    ActionControlProcessor.ApplyFrame(ctx.Entities, ctx.Battle, frame.ID);
+                    if (ActionResolution.Suppress(ref ctx, frame.Event))
+                    {
+                        frame.Completed = true;
+                        return;
+                    }
                     frame.Phase = BattleEventPhase.PostResolution;
 
                     frame.PhaseStarted = false;
@@ -598,6 +677,7 @@ namespace Archeus.Battle.Systems.Events
                         return;
                     }
 
+                    ActionControlProcessor.ApplyFrame(ctx.Entities, ctx.Battle, frame.ID);
                     frame.Completed = true;
 
                     return;
@@ -806,6 +886,11 @@ namespace Archeus.Battle.Systems.Events
                             + $"{continuation.ParentFrameID}."
                     );
 
+                    ActionQueueService.Fail(
+                        ctx.Entities,
+                        ctx.Battle,
+                        SchedulerFailure.EventEngineUnsettled
+                    );
                     continuations.RemoveAt(i);
                     return true;
                 }
@@ -814,13 +899,21 @@ namespace Archeus.Battle.Systems.Events
 
                 Entity behaviourOwner = continuation.Frame.BehaviourOwner;
 
-                if (!behaviourStateLookup.HasBuffer(behaviourOwner))
+                if (
+                    continuation.BehaviourStateIndex >= 0
+                    && !behaviourStateLookup.HasBuffer(behaviourOwner)
+                )
                 {
                     Logging.Warn(
                         LogCategory.Event,
                         "[Scheduler] Resuming VM is missing " + "BehaviourRuntimeState buffer."
                     );
 
+                    ActionQueueService.Fail(
+                        ctx.Entities,
+                        ctx.Battle,
+                        SchedulerFailure.EventEngineUnsettled
+                    );
                     UnblockVMContinuation(ref parentFrame);
 
                     continuations.RemoveAt(i);
@@ -828,9 +921,11 @@ namespace Archeus.Battle.Systems.Events
                     return true;
                 }
 
-                DynamicBuffer<BehaviourRuntimeState> stateBuffer = behaviourStateLookup[
+                DynamicBuffer<BehaviourRuntimeState> stateBuffer = behaviourStateLookup.HasBuffer(
                     behaviourOwner
-                ];
+                )
+                    ? behaviourStateLookup[behaviourOwner]
+                    : default;
 
                 Logging.Info(
                     LogCategory.Event,
@@ -862,7 +957,13 @@ namespace Archeus.Battle.Systems.Events
 
                     return true;
                 }
-                // Completed OR Aborted.
+                if (result.Status == AbilityExecutionStatus.Aborted)
+                    ActionQueueService.Fail(
+                        ctx.Entities,
+                        ctx.Battle,
+                        SchedulerFailure.EventEngineUnsettled
+                    );
+                // Completed OR Aborted. Aborted execution halts the battle; it cannot report success.
                 UnblockVMContinuation(ref parentFrame);
 
                 Logging.Info(
@@ -905,41 +1006,7 @@ namespace Archeus.Battle.Systems.Events
                     continue;
                 }
 
-                uint sourceRuntimeID = ctx.CardRuntimeIDLookup[actionState.Source].Value;
-
-                uint targetRuntimeID = ctx.CardRuntimeIDLookup[actionState.PrimaryTarget].Value;
-
-                PresentationFactContext factContext = new PresentationFactContext
-                {
-                    BattleRuntimeID = ctx.BattleID,
-
-                    SourceRuntimeID = sourceRuntimeID,
-                    TargetRuntimeID = targetRuntimeID,
-
-                    ActionDefinitionID = 0,
-
-                    ActionExecutionID = actionState.ActionExecutionID,
-
-                    ActionResultIndex = PresentationFactMetadata.NoActionResult,
-
-                    GroupID = EventStructuralData.InvalidGroupID,
-
-                    Generation = 0,
-                };
-
-                PresentationFactEmitter.EmitActionCompletedFact(
-                    factContext,
-                    ctx.PresentationFactQueue,
-                    ctx.PresentationSequenceCounter
-                );
-
-                Logging.Info(
-                    LogCategory.Simulation,
-                    $"Action Completed: "
-                        + $"Execution={actionState.ActionExecutionID} | "
-                        + $"Type={actionState.ActionType} | "
-                        + $"Source={actionState.Source.Index}"
-                );
+                ActionResolution.Finish(ref ctx, actionState);
 
                 ctx.ActionExecutionStates.RemoveAt(i);
             }
