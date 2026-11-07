@@ -3,6 +3,7 @@ using Archeus.Battle.Buffers.Events;
 using Archeus.Battle.Components.Core;
 using Archeus.Battle.Components.Ownership;
 using Archeus.Battle.Components.Requests;
+using Archeus.Battle.Components.Stats;
 using Archeus.Battle.Components.Tags;
 using Archeus.Battle.Components.Turns;
 using Archeus.Battle.Data.Actions;
@@ -208,9 +209,7 @@ namespace Archeus.Testing.Battle.Scheduling
             f.RunAction();
             f.FinishStage();
             Assert.That(
-                f.EM.GetBuffer<Archeus.Battle.Buffers.VM.BehaviourRuntimeState>(f.Toma)[0].Memory[
-                    0
-                ],
+                f.EM.GetBuffer<BehaviourRuntimeState>(f.Toma)[0].Memory[0],
                 Is.EqualTo(1),
                 "Action hooks still run in children."
             );

@@ -11,7 +11,8 @@ namespace Archeus.Battle.Presentation.State
         public static BattlePresentationState BuildBattle(
             ulong battleRuntimeID,
             in BattleState battleState,
-            in TurnCounter turnCounter
+            in TurnCounter turnCounter,
+            BattleSide activeSide
         )
         {
             return new BattlePresentationState
@@ -19,6 +20,7 @@ namespace Archeus.Battle.Presentation.State
                 BattleRuntimeID = battleRuntimeID,
                 Phase = battleState.Phase,
                 TurnNumber = turnCounter.CurrentTurn,
+                ActiveSide = activeSide,
             };
         }
 

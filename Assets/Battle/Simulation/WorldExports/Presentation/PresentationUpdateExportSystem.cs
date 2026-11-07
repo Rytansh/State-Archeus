@@ -84,10 +84,19 @@ namespace Archeus.Battle.Systems.Presentation
             {
                 ulong id = battleID.ValueRO.Value;
 
-                BattlePresentationState currentBattleState = PresentationStateBuilder.BuildBattle(
-                    id,
+                Entity activePlayer = EntityManager
+                    .GetComponentData<ActiveTurnPlayer>(battle)
+                    .Player;
+
+                BattleSide activeSide = EntityManager
+                    .GetComponentData<BattleSideAssignment>(activePlayer)
+                    .Side;
+
+                BattlePresentationState projectedBattle = PresentationStateBuilder.BuildBattle(
+                    battleID.ValueRO.Value,
                     in battleState.ValueRO,
-                    in turnCounter.ValueRO
+                    in turnCounter.ValueRO,
+                    activeSide
                 );
 
                 /*
@@ -102,7 +111,7 @@ namespace Archeus.Battle.Systems.Presentation
 
                 if (!projectionCaches.TryGetValue(id, out BattleProjectionCache cache))
                 {
-                    cache = new BattleProjectionCache { Battle = currentBattleState };
+                    cache = new BattleProjectionCache { Battle = projectedBattle };
 
                     foreach (var pair in currentCharacters)
                         cache.Characters.Add(pair.Key, pair.Value);
@@ -121,7 +130,7 @@ namespace Archeus.Battle.Systems.Presentation
                     continue;
                 }
 
-                ExportBattleChange(bridge, id, revision, currentBattleState, cache);
+                ExportBattleChange(bridge, id, revision, projectedBattle, cache);
 
                 ExportPlayerChanges(bridge, id, revision, cache);
 

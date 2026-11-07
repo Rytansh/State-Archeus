@@ -68,7 +68,7 @@ public class BattleTestHarness : MonoBehaviour
         deck.Add(
             new PlayerDeckEntry
             {
-                PlayerID = 1001,
+                PlayerID = 1002,
                 CardDefinitionID = StableHash32.HashFromString("C1"),
                 CardType = RuntimeCardType.Character,
             }

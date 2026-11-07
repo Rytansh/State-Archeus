@@ -248,10 +248,20 @@ namespace Archeus.Testing.Battle.Scheduling
             f.RunAction();
             Assert.That(f.EM.GetBuffer<PlannedAction>(f.Context).Length, Is.EqualTo(1));
             Assert.That(f.EM.GetBuffer<PlannedAction>(f.Context)[0].Source, Is.EqualTo(f.Mei));
-            Assert.That(
-                f.EM.GetBuffer<ActionControlResult>(f.Battle).Count(x => x.Accepted),
-                Is.EqualTo(1)
+
+            DynamicBuffer<ActionControlResult> results = f.EM.GetBuffer<ActionControlResult>(
+                f.Battle
             );
+
+            int acceptedCount = 0;
+
+            for (int i = 0; i < results.Length; i++)
+            {
+                if (results[i].Accepted)
+                    acceptedCount++;
+            }
+
+            Assert.That(acceptedCount, Is.EqualTo(1));
         }
 
         [Test]

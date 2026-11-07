@@ -100,10 +100,19 @@ namespace Archeus.Battle.Systems.Presentation
 
                 revision.ValueRW.Value = nextRevision;
 
+                Entity activePlayer = EntityManager
+                    .GetComponentData<ActiveTurnPlayer>(battle)
+                    .Player;
+
+                BattleSide activeSide = EntityManager
+                    .GetComponentData<BattleSideAssignment>(activePlayer)
+                    .Side;
+
                 BattlePresentationState projectedBattle = PresentationStateBuilder.BuildBattle(
                     battleID.ValueRO.Value,
                     in battleState.ValueRO,
-                    in turnCounter.ValueRO
+                    in turnCounter.ValueRO,
+                    activeSide
                 );
 
                 PresentationStateSnapshot snapshot = new PresentationStateSnapshot
