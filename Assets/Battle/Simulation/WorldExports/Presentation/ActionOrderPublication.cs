@@ -206,6 +206,22 @@ namespace Archeus.Battle.Scheduling
                         Side = em.GetComponentData<BattleSideAssignment>(selections[i].Player).Side,
                     };
             }
+            if (em.HasBuffer<ArmedActionControl>(battle))
+            {
+                var armed = em.GetBuffer<ArmedActionControl>(battle);
+                result.ArmedControls = new ArmedControlView[armed.Length];
+                for (int i = 0; i < armed.Length; i++)
+                {
+                    var request = armed[i].Request;
+                    result.ArmedControls[i] = new ArmedControlView
+                    {
+                        ContextID = request.ContextID,
+                        Kind = request.Kind,
+                        ActorRuntimeID = request.OwnerRuntimeID,
+                        TargetRuntimeID = RuntimeID(em, request.Action.PrimaryTarget),
+                    };
+                }
+            }
             return result;
         }
 
@@ -290,6 +306,15 @@ namespace Archeus.Battle.Scheduling
                     .Append(selection.ContextID)
                     .Append(':')
                     .Append(selection.PlayerID);
+            foreach (var armed in state.ArmedControls)
+                text.Append('r')
+                    .Append(armed.ContextID)
+                    .Append(':')
+                    .Append(armed.Kind)
+                    .Append(':')
+                    .Append(armed.ActorRuntimeID)
+                    .Append(':')
+                    .Append(armed.TargetRuntimeID);
             return text.ToString();
         }
 
