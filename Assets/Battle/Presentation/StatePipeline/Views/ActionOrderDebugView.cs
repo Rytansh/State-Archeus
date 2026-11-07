@@ -17,6 +17,7 @@ namespace Archeus.Battle.Presentation
         private uint target;
         private bool show = true;
         private bool controls;
+        private bool simpleHistory = true;
         private Vector2 scroll;
 
         private void OnGUI()
@@ -233,11 +234,24 @@ namespace Archeus.Battle.Presentation
                     gateway
                 );
             }
-            GUILayout.Label("Ordered scheduler transitions (latest 64):");
-            foreach (var fact in mirror.Transitions)
+            GUILayout.Space(8);
+            GUILayout.Label($"Armed controls ({order.ArmedControls.Length}):");
+            if (order.ArmedControls.Length == 0)
+                GUILayout.Label("  None");
+            foreach (var armed in order.ArmedControls)
                 GUILayout.Label(
-                    $"{fact.Kind}: context {fact.ContextID}, queue {fact.QueueActionID}, execution {fact.ExecutionID}, source {fact.SourceRuntimeID}, cause {fact.CausingExecutionID}, {fact.Outcome}"
+                    $"  NEXT ATTEMPT | {armed.Kind} | actor {armed.ActorRuntimeID}, target {armed.TargetRuntimeID} | context {armed.ContextID}"
                 );
+            GUILayout.Space(8);
+            GUILayout.Label(simpleHistory ? "Execution history (simple):" : "Scheduler transitions (detailed, latest 64):");
+            if (GUILayout.Button(simpleHistory ? "Show detailed transitions" : "Show simple execution history"))
+                simpleHistory = !simpleHistory;
+            foreach (var fact in mirror.Transitions)
+            {
+                string line = simpleHistory ? SimplifyTransition(fact) : DescribeTransition(fact);
+                if (!string.IsNullOrEmpty(line))
+                    GUILayout.Label(line);
+            }
             GUILayout.EndScrollView();
             GUILayout.EndArea();
 #endif
@@ -261,6 +275,51 @@ namespace Archeus.Battle.Presentation
                     target
                 );
         }
+#endif
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private static string SimplifyTransition(SchedulerFactPayload fact)
+        {
+            switch (fact.Kind)
+            {
+                case SchedulerFactKind.Enqueued:
+                    return $"Queued: actor {fact.SourceRuntimeID} - {fact.ActionType} (#{fact.QueueActionID})";
+                case SchedulerFactKind.Inserted:
+                    return fact.Origin == ActionOrigin.InterruptReplacement
+                        ? $"Replacement inserted: actor {fact.SourceRuntimeID} - {fact.ActionType} (#{fact.QueueActionID}, caused by execution {fact.CausingExecutionID})"
+                        : $"Inserted: actor {fact.SourceRuntimeID} - {fact.ActionType} (#{fact.QueueActionID})";
+                case SchedulerFactKind.Interrupted:
+                    return $"INTERRUPTED: actor {fact.SourceRuntimeID} - {fact.ActionType} (execution {fact.ExecutionID})";
+                case SchedulerFactKind.Cancelled:
+                    return $"CANCELLED: actor {fact.SourceRuntimeID} (action #{fact.QueueActionID})";
+                case SchedulerFactKind.Completed:
+                    return $"Completed: actor {fact.SourceRuntimeID} - {fact.ActionType} (execution {fact.ExecutionID})";
+                case SchedulerFactKind.Failed:
+                    return $"FAILED: actor {fact.SourceRuntimeID} (execution {fact.ExecutionID})";
+                case SchedulerFactKind.ContextSuspended:
+                    return $"  Paused context {fact.ContextID}";
+                case SchedulerFactKind.ContextActivated:
+                    return fact.ContextType == AttackingStageExecutionType.NormalTurn
+                        ? $"Normal turn started (context {fact.ContextID})"
+                        : $"{fact.ContextType} started (context {fact.ContextID}, parent {fact.ParentContextID})";
+                case SchedulerFactKind.ContextResumed:
+                    return $"  Resumed context {fact.ContextID}";
+                case SchedulerFactKind.ContextCompleted:
+                    return $"Context {fact.ContextID} finished ({fact.ContextType})";
+                case SchedulerFactKind.Removed:
+                    return $"Removed pending action #{fact.QueueActionID}";
+                case SchedulerFactKind.Moved:
+                    return $"Reordered action #{fact.QueueActionID}";
+                case SchedulerFactKind.StageSkipped:
+                    return $"Stage skipped in context {fact.ContextID}";
+                default:
+                    // Hide Dequeued/AttemptStarted/Authorized/AttemptSettled in simple mode.
+                    return null;
+            }
+        }
+
+        private static string DescribeTransition(SchedulerFactPayload fact) =>
+            $"{fact.Kind}: context {fact.ContextID}, queue {fact.QueueActionID}, execution {fact.ExecutionID}, source {fact.SourceRuntimeID}, cause {fact.CausingExecutionID}, {fact.Outcome}";
 #endif
 
         public static string Describe(ActionOrderItem item) =>
