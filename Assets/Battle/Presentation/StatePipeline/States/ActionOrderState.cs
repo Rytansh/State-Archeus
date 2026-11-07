@@ -79,6 +79,14 @@ namespace Archeus.Battle.Presentation.State
         public Archeus.Battle.Components.Ownership.BattleSide Side;
     }
 
+    public struct ArmedControlView
+    {
+        public uint ContextID;
+        public ActionControlKind Kind;
+        public uint ActorRuntimeID;
+        public uint TargetRuntimeID;
+    }
+
     public sealed class ActionOrderSnapshot
     {
         public ulong BattleID;
@@ -91,6 +99,7 @@ namespace Archeus.Battle.Presentation.State
         public uint[] Actors = Array.Empty<uint>();
         public uint[] Targets = Array.Empty<uint>();
         public InterruptSelectionView[] Selections = Array.Empty<InterruptSelectionView>();
+        public ArmedControlView[] ArmedControls = Array.Empty<ArmedControlView>();
     }
 
     public sealed class ActionOrderStateUpdate : PresentationStateUpdate
